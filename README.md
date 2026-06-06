@@ -99,6 +99,14 @@ The connector server reads `./command-tab-context/` when present. You can also p
 COMMAND_TAB_CONTEXT_DIR=/absolute/path/to/context npm run connector
 ```
 
+To migrate an existing local dashboard backend, point Command Tab at that backend:
+
+```bash
+COMMAND_TAB_BACKEND_URL=http://127.0.0.1:8765 npm run connector
+```
+
+This enables backend-backed cards for tasks, WhatsApp bridge/daily plan, Gmail review, calendar, daily systems, and agent runs when those endpoints exist. Failed backend calls are shown as `error`; they are not replaced with fake content.
+
 The local Tasks connector can still be pointed at a single file:
 
 ```bash

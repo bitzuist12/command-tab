@@ -482,12 +482,58 @@ async function fetchCommandSummary() {
   }
 }
 
+async function postBackendAction(path, body = {}) {
+  const endpoint = `${connectorBaseUrl()}${path}`;
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    throw new Error(data.error || `${path} returned ${res.status}`);
+  }
+  return data;
+}
+
 function connectorStatusLabel(status) {
   if (status === 'ok') return 'Live';
   if (status === 'cached') return 'Cached';
   if (status === 'disconnected') return 'Disconnected';
   if (status === 'template') return 'Template';
   return 'Error';
+}
+
+function renderConnectorActions(connector) {
+  const actions = Array.isArray(connector.actions) ? connector.actions : [];
+  if (!actions.length) return '';
+  return `
+    <div class="command-actions">
+      ${actions.slice(0, 3).map(action => {
+        if (action.url) {
+          return `<a class="command-action" href="${escapeHtml(action.url)}" target="_blank" rel="noopener">${escapeHtml(action.label || 'Open')}</a>`;
+        }
+        return `<button class="command-action" data-action="${escapeHtml(action.command || 'refresh-command-center')}" type="button">${escapeHtml(action.label || 'Run')}</button>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderWhatsAppPlanRows(connector) {
+  const planned = Array.isArray(connector.planned) ? connector.planned : [];
+  if (!planned.length) return '';
+  return `
+    <div class="command-plan">
+      <div class="command-plan-title">Planned messages</div>
+      ${planned.slice(0, 4).map(item => `
+        <div class="command-plan-row ${item.enabled === false ? 'is-disabled' : ''}">
+          <div>
+            <span>${escapeHtml(item.title || 'WhatsApp chat')}</span>
+            <small>${escapeHtml(item.detail || '')}</small>
+          </div>
+          <button class="command-action compact" data-action="refresh-command-center" type="button">View</button>
+        </div>
+      `).join('')}
+    </div>`;
 }
 
 function renderConnectorCard(connector) {
@@ -508,8 +554,11 @@ function renderConnectorCard(connector) {
         </div>
         <span class="command-status">${escapeHtml(connectorStatusLabel(status))}</span>
       </div>
+      ${connector.summary ? `<div class="command-summary">${escapeHtml(connector.summary)}</div>` : ''}
       ${connector.error ? `<div class="command-error">${escapeHtml(connector.error)}</div>` : ''}
       ${itemRows ? `<div class="command-items">${itemRows}</div>` : '<div class="command-empty">No live items.</div>'}
+      ${connector.id === 'whatsapp' ? renderWhatsAppPlanRows(connector) : ''}
+      ${renderConnectorActions(connector)}
     </article>
   `;
 }
@@ -1318,6 +1367,45 @@ document.addEventListener('click', async (e) => {
     e.stopPropagation();
     await renderCommandCenter();
     showToast('Command center refreshed');
+    return;
+  }
+
+  if (action === 'gmail-refresh') {
+    e.stopPropagation();
+    try {
+      await postBackendAction('/api/backend/gmail/refresh');
+      await renderCommandCenter();
+      showToast('Gmail refreshed');
+    } catch (error) {
+      showToast(error.message || 'Gmail refresh failed');
+      await renderCommandCenter();
+    }
+    return;
+  }
+
+  if (action === 'whatsapp-refresh') {
+    e.stopPropagation();
+    try {
+      await postBackendAction('/api/backend/whatsapp/refresh');
+      await renderCommandCenter();
+      showToast('WhatsApp refreshed');
+    } catch (error) {
+      showToast(error.message || 'WhatsApp refresh failed');
+      await renderCommandCenter();
+    }
+    return;
+  }
+
+  if (action === 'whatsapp-bridge-restart') {
+    e.stopPropagation();
+    try {
+      await postBackendAction('/api/backend/whatsapp/bridge-restart');
+      await renderCommandCenter();
+      showToast('WhatsApp bridge restart requested');
+    } catch (error) {
+      showToast(error.message || 'WhatsApp bridge restart failed');
+      await renderCommandCenter();
+    }
     return;
   }
 

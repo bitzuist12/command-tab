@@ -25,6 +25,14 @@ http://127.0.0.1:8733/api/summary
 
 The current server includes local context connectors for tasks, WhatsApp/message drafts, and notes. By default it reads `./command-tab-context/` when present, otherwise sample files in `examples/`.
 
+To connect an existing local command-center backend:
+
+```bash
+COMMAND_TAB_BACKEND_URL=http://127.0.0.1:8765 npm run connector
+```
+
+When a backend URL is configured, `/api/summary` attempts compatible backend calls for tasks, WhatsApp bridge/daily plan/latest review, Gmail latest review, calendar upcoming, habits, voice notes, and agent runs. Each failed call returns an explicit `error` connector instead of sample content.
+
 ## Summary Endpoint
 
 `GET /api/summary`
@@ -157,7 +165,8 @@ The extension must show these states clearly.
 
 Recommended order:
 
-1. Google Calendar read-only.
-2. Gmail read-only digest.
-3. WhatsApp bridge health and manual-send queue.
-4. Local model adapter.
+1. Task actions: quick-add, check, pin, remind, note append.
+2. WhatsApp bridge restart and manual-send queue.
+3. Gmail review actions: search, sort, reviewed/later, block sender, copy reply.
+4. Daily systems cards: habits, gratitude, voice notes, daily shot.
+5. Local model adapter.

@@ -17,16 +17,17 @@
 - [x] Add a local task JSON connector.
 - [x] Add a private context folder convention.
 - [x] Add local WhatsApp/message draft and notes context cards.
+- [x] Add external backend compatibility mode for the Hamilton-style prototype.
 - [ ] Add connector settings UI.
 
 ## Phase 2: First Real Connectors
 
 Recommended order:
 
-1. Google Calendar read-only.
-2. Local tasks JSON/Markdown.
-3. Gmail read-only digest.
-4. WhatsApp local bridge health + manual send queue.
+1. Task actions: quick-add, check, pin, remind, note append.
+2. WhatsApp local bridge health + manual send queue.
+3. Gmail read-only digest and review actions.
+4. Google Calendar read-only.
 
 Do not add automatic sending. Keep message/email sending manual and approval-based.
 

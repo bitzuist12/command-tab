@@ -244,6 +244,14 @@ header {
   font-size: 14px;
 }
 
+.command-summary {
+  margin: -2px 0 8px;
+  color: var(--accent-slate);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .command-error {
   margin-top: 10px;
   color: var(--status-abandoned);
@@ -279,6 +287,81 @@ header {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.35;
+}
+
+.command-plan {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(154, 145, 138, 0.14);
+}
+
+.command-plan-title {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.command-plan-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.command-plan-row.is-disabled {
+  opacity: 0.6;
+}
+
+.command-plan-row span {
+  display: block;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.command-plan-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.command-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.command-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 1px solid rgba(90, 107, 122, 0.18);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.command-action:hover {
+  background: rgba(90, 107, 122, 0.08);
+}
+
+.command-action.compact {
+  min-height: 24px;
+  padding: 4px 7px;
+  font-size: 10px;
 }
 
 /* ---- Nudge banner ---- */
