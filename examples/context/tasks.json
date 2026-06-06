@@ -1,0 +1,12 @@
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Choose today's focus",
+      "detail": "Pick one task that should be visible every time a new tab opens.",
+      "priority": "high",
+      "status": "todo",
+      "due": "today"
+    }
+  ]
+}

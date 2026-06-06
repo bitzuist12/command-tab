@@ -1,0 +1,12 @@
+{
+  "chats": [
+    {
+      "id": "family",
+      "name": "Family",
+      "purpose": "Daily warm note",
+      "message": "Good morning. Wishing you a calm day.",
+      "status": "draft",
+      "last_sent_at": ""
+    }
+  ]
+}

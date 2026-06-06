@@ -1,0 +1,10 @@
+{
+  "notes": [
+    {
+      "id": "note-1",
+      "title": "What should Command Tab show?",
+      "body": "Only the next useful thing, not a noisy dashboard.",
+      "tags": ["onboarding"]
+    }
+  ]
+}

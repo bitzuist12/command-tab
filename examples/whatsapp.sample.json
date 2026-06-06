@@ -1,0 +1,20 @@
+{
+  "chats": [
+    {
+      "id": "family",
+      "name": "Family",
+      "purpose": "Daily supportive check-in",
+      "message": "Good morning, hope today feels a little lighter.",
+      "status": "draft",
+      "last_sent_at": ""
+    },
+    {
+      "id": "team",
+      "name": "Team",
+      "purpose": "Morning priorities",
+      "message": "What is the one thing that needs to move today?",
+      "status": "draft",
+      "last_sent_at": ""
+    }
+  ]
+}

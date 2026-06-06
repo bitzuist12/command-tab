@@ -39,6 +39,8 @@ Chrome new tab extension
 
 See [docs/architecture.md](docs/architecture.md) and [docs/roadmap.md](docs/roadmap.md).
 
+For first-time setup, see [docs/onboarding.md](docs/onboarding.md).
+
 ## Why A New Tab?
 
 Most productivity apps fail because you have to remember to open them. A new-tab surface appears naturally dozens of times per day. That makes it a good place for:
@@ -73,6 +75,12 @@ No build step is required for the current extension.
 
 ## Optional Connector Server
 
+Create a private context folder:
+
+```bash
+cp -R examples/context ./command-tab-context
+```
+
 Run the local connector server:
 
 ```bash
@@ -85,13 +93,19 @@ Then Command Tab will read:
 http://127.0.0.1:8733/api/summary
 ```
 
-The connector server includes a local Tasks connector backed by `examples/tasks.sample.json`. You can point it at your own file:
+The connector server reads `./command-tab-context/` when present. You can also point it at another private folder:
+
+```bash
+COMMAND_TAB_CONTEXT_DIR=/absolute/path/to/context npm run connector
+```
+
+The local Tasks connector can still be pointed at a single file:
 
 ```bash
 COMMAND_TAB_TASKS_FILE=/absolute/path/to/tasks.json npm run connector
 ```
 
-Other connectors still return clearly labeled `disconnected` states. This is deliberate: fake/sample connector content must be labeled clearly and never presented as real Gmail, WhatsApp, Calendar, or model output.
+Other external-service connectors still return clearly labeled `disconnected` states. This is deliberate: fake/sample connector content must be labeled clearly and never presented as real Gmail, WhatsApp, Calendar, or model output.
 
 See [docs/connectors.md](docs/connectors.md).
 

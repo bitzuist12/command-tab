@@ -15,6 +15,8 @@
 - [x] Add health states: connected, disconnected, stale, error.
 - [x] Add example/mock connector data clearly labeled as sample/template.
 - [x] Add a local task JSON connector.
+- [x] Add a private context folder convention.
+- [x] Add local WhatsApp/message draft and notes context cards.
 - [ ] Add connector settings UI.
 
 ## Phase 2: First Real Connectors

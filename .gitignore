@@ -6,3 +6,6 @@ docs/superpowers/
 
 # Personal config (landing page patterns, etc.) — never push to GitHub
 extension/config.local.js
+
+# Private user context. Use examples/context as the template.
+command-tab-context/

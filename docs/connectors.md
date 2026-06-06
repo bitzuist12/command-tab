@@ -2,6 +2,14 @@
 
 Command Tab uses an optional connector server instead of putting Gmail, WhatsApp, Calendar, filesystem, or model credentials in browser extension code.
 
+The default private workspace is:
+
+```text
+./command-tab-context/
+```
+
+It is gitignored. Use `examples/context/` as the template.
+
 ## Local Development
 
 ```bash
@@ -15,7 +23,7 @@ http://127.0.0.1:8733/api/health
 http://127.0.0.1:8733/api/summary
 ```
 
-The current server includes one real local connector: Tasks. By default it reads `examples/tasks.sample.json`. You can point it at your own local task file with `COMMAND_TAB_TASKS_FILE`.
+The current server includes local context connectors for tasks, WhatsApp/message drafts, and notes. By default it reads `./command-tab-context/` when present, otherwise sample files in `examples/`.
 
 ## Summary Endpoint
 
@@ -53,9 +61,11 @@ Default:
 npm run connector
 ```
 
-Uses:
+Uses the first available:
 
 ```text
+COMMAND_TAB_TASKS_FILE
+./command-tab-context/tasks.json
 examples/tasks.sample.json
 ```
 
@@ -84,6 +94,54 @@ or:
 ```
 
 Tasks with `status` set to `done`, `completed`, or `archived` are hidden from the card.
+
+## Local WhatsApp / Message Draft Context
+
+This is not a live WhatsApp connector yet. It is a local context file for drafts and status visibility.
+
+```text
+command-tab-context/whatsapp.json
+```
+
+Shape:
+
+```json
+{
+  "chats": [
+    {
+      "id": "family",
+      "name": "Family",
+      "purpose": "Daily warm note",
+      "message": "Good morning.",
+      "status": "draft",
+      "last_sent_at": ""
+    }
+  ]
+}
+```
+
+Future live WhatsApp sending must check bridge health and require explicit user approval.
+
+## Local Notes Context
+
+```text
+command-tab-context/notes.json
+```
+
+Shape:
+
+```json
+{
+  "notes": [
+    {
+      "id": "note-1",
+      "title": "Principle",
+      "body": "Show failures clearly.",
+      "tags": ["safety"]
+    }
+  ]
+}
+```
 
 ## Status Rules
 

@@ -1,0 +1,16 @@
+{
+  "notes": [
+    {
+      "id": "principle-1",
+      "title": "New tab should stay useful without setup",
+      "body": "Tabs, saved links, and local notes must work before any connector is enabled.",
+      "tags": ["product", "principle"]
+    },
+    {
+      "id": "principle-2",
+      "title": "No silent fallback content",
+      "body": "If a connector or model call fails, show the failure state clearly.",
+      "tags": ["safety", "connectors"]
+    }
+  ]
+}

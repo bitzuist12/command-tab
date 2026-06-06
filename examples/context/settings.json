@@ -1,0 +1,11 @@
+{
+  "profile_name": "Demo user",
+  "connectors": {
+    "tasks": true,
+    "whatsapp": true,
+    "notes": true,
+    "gmail": false,
+    "calendar": false,
+    "local_ai": false
+  }
+}
