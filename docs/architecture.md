@@ -45,6 +45,8 @@ The connector server should:
 
 ## Connector Contract
 
+The default local connector server listens on `127.0.0.1:8733`.
+
 Each connector should expose:
 
 ```json

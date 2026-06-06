@@ -1,0 +1,11 @@
+{
+  "name": "command-tab",
+  "version": "0.1.0",
+  "private": false,
+  "description": "A privacy-first Chrome new-tab command center.",
+  "scripts": {
+    "check": "node --check extension/app.js && node --check connector-server/server.js",
+    "connector": "node connector-server/server.js"
+  },
+  "license": "MIT"
+}

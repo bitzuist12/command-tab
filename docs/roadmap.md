@@ -10,10 +10,12 @@
 
 ## Phase 1: Connector Shell
 
-- Define a local connector API contract.
-- Add a small connector-card area to the new tab.
-- Add health states: connected, disconnected, stale, error.
-- Add example/mock connector data clearly labeled as sample/template.
+- [x] Define a local connector API contract.
+- [x] Add a small connector-card area to the new tab.
+- [x] Add health states: connected, disconnected, stale, error.
+- [x] Add example/mock connector data clearly labeled as sample/template.
+- [ ] Add a local task JSON connector.
+- [ ] Add connector settings UI.
 
 ## Phase 2: First Real Connectors
 

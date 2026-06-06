@@ -16,6 +16,7 @@ Today, Command Tab is a pure Chrome extension:
 - Closes duplicates and whole domain groups.
 - Saves tabs for later in `chrome.storage.local`.
 - Supports local personal configuration through `extension/config.local.js`.
+- Optionally reads connector cards from a local server at `http://127.0.0.1:8733`.
 
 ## Product Direction
 
@@ -70,6 +71,24 @@ cd command-tab
 
 No build step is required for the current extension.
 
+## Optional Connector Server
+
+Run the local connector server:
+
+```bash
+npm run connector
+```
+
+Then Command Tab will read:
+
+```text
+http://127.0.0.1:8733/api/summary
+```
+
+The first connector server returns template/disconnected cards only. This is deliberate: fake/sample connector content must be labeled clearly and never presented as real Gmail, WhatsApp, Calendar, or model output.
+
+See [docs/connectors.md](docs/connectors.md).
+
 ## Local Personal Config
 
 You can create `extension/config.local.js` for personal overrides. This file is gitignored.
@@ -88,7 +107,7 @@ Do not commit tokens, secrets, personal messages, or private workspace paths.
 ## Development Checks
 
 ```bash
-node --check extension/app.js
+npm run check
 ```
 
 ## Open-Source Notes

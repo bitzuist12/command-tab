@@ -26,6 +26,12 @@
 // All open tabs — populated by fetchOpenTabs()
 let openTabs = [];
 
+const DEFAULT_CONNECTOR_URL = 'http://127.0.0.1:8733';
+
+function connectorBaseUrl() {
+  return (window.COMMAND_TAB_CONNECTOR_URL || DEFAULT_CONNECTOR_URL).replace(/\/$/, '');
+}
+
 /**
  * fetchOpenTabs()
  *
@@ -440,6 +446,111 @@ function showToast(message) {
   document.getElementById('toastText').textContent = message;
   toast.classList.add('visible');
   setTimeout(() => toast.classList.remove('visible'), 2500);
+}
+
+/* ----------------------------------------------------------------
+   COMMAND CENTER CONNECTORS
+
+   Optional local/server API inspired by the Hamilton prototype.
+   The extension stays useful without it. If the connector server is
+   offline, show a clear offline state instead of sample/fallback data.
+   ---------------------------------------------------------------- */
+
+async function fetchCommandSummary() {
+  const endpoint = `${connectorBaseUrl()}/api/summary`;
+  try {
+    const res = await fetch(endpoint, { cache: 'no-store' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        status: 'error',
+        source: 'live',
+        generated_at: new Date().toISOString(),
+        error: data.error || `${endpoint} returned ${res.status}`,
+        connectors: [],
+      };
+    }
+    return data;
+  } catch (error) {
+    return {
+      status: 'disconnected',
+      source: 'none',
+      generated_at: new Date().toISOString(),
+      error: `Connector server unreachable at ${endpoint}: ${error.message || error}`,
+      connectors: [],
+    };
+  }
+}
+
+function connectorStatusLabel(status) {
+  if (status === 'ok') return 'Live';
+  if (status === 'cached') return 'Cached';
+  if (status === 'disconnected') return 'Disconnected';
+  if (status === 'template') return 'Template';
+  return 'Error';
+}
+
+function renderConnectorCard(connector) {
+  const status = connector.status || 'error';
+  const items = Array.isArray(connector.items) ? connector.items : [];
+  const itemRows = items.slice(0, 4).map(item => `
+    <div class="command-item">
+      <span>${escapeHtml(item.title || item.label || 'Item')}</span>
+      <small>${escapeHtml(item.detail || item.source || '')}</small>
+    </div>
+  `).join('');
+  return `
+    <article class="command-card is-${escapeHtml(status)}">
+      <div class="command-card-head">
+        <div>
+          <div class="command-kicker">${escapeHtml(connector.kind || connector.id || 'connector')}</div>
+          <h3>${escapeHtml(connector.label || connector.id || 'Connector')}</h3>
+        </div>
+        <span class="command-status">${escapeHtml(connectorStatusLabel(status))}</span>
+      </div>
+      ${connector.error ? `<div class="command-error">${escapeHtml(connector.error)}</div>` : ''}
+      ${itemRows ? `<div class="command-items">${itemRows}</div>` : '<div class="command-empty">No live items.</div>'}
+    </article>
+  `;
+}
+
+function renderCommandCenterHtml(summary) {
+  if (!summary || summary.status === 'disconnected') {
+    return `
+      <section class="command-center offline">
+        <button class="command-center-head" data-action="refresh-command-center" type="button">
+          <span>
+            <span class="command-kicker">Command Center</span>
+            <strong>Connector server offline</strong>
+          </span>
+          <span class="command-status">Refresh</span>
+        </button>
+        <div class="command-error">${escapeHtml(summary?.error || 'Start the optional connector server to show Gmail, Calendar, WhatsApp, tasks, or local AI cards.')}</div>
+      </section>`;
+  }
+
+  const connectors = Array.isArray(summary.connectors) ? summary.connectors : [];
+  const okCount = connectors.filter(c => c.status === 'ok').length;
+  return `
+    <section class="command-center">
+      <button class="command-center-head" data-action="refresh-command-center" type="button">
+        <span>
+          <span class="command-kicker">Command Center</span>
+          <strong>${okCount}/${connectors.length} connectors live</strong>
+        </span>
+        <span class="command-status">${escapeHtml(summary.source || 'live')}</span>
+      </button>
+      <div class="command-grid">
+        ${connectors.map(renderConnectorCard).join('') || '<div class="command-empty">No connectors configured yet.</div>'}
+      </div>
+    </section>`;
+}
+
+async function renderCommandCenter() {
+  const slot = document.getElementById('commandCenterSlot');
+  if (!slot) return;
+  const summary = await fetchCommandSummary();
+  slot.innerHTML = renderCommandCenterHtml(summary);
 }
 
 /**
@@ -1028,6 +1139,7 @@ async function renderStaticDashboard() {
 
   // --- Fetch tabs ---
   await fetchOpenTabs();
+  await renderCommandCenter();
   const realTabs = getRealTabs();
 
   // --- Group tabs by domain ---
@@ -1199,6 +1311,13 @@ document.addEventListener('click', async (e) => {
       setTimeout(() => { banner.style.display = 'none'; banner.style.opacity = '1'; }, 400);
     }
     showToast('Closed extra Command Tab tabs');
+    return;
+  }
+
+  if (action === 'refresh-command-center') {
+    e.stopPropagation();
+    await renderCommandCenter();
+    showToast('Command center refreshed');
     return;
   }
 
