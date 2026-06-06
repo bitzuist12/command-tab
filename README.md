@@ -1,91 +1,103 @@
-# Tab Out
+# Command Tab
 
-**Keep tabs on your tabs.**
+**A private command center that opens every time you open a new tab.**
 
-Tab Out is a Chrome extension that replaces your new tab page with a dashboard of everything you have open. Tabs are grouped by domain, with homepages (Gmail, X, LinkedIn, etc.) pulled into their own group. Close tabs with a satisfying swoosh + confetti.
+Command Tab is a Chrome new-tab extension for turning the browser's most repeated moment into an operating surface: open tabs, saved links, tasks, inboxes, calendar, messages, notes, and optional local AI.
 
-No server. No account. No external API calls. Just a Chrome extension.
+This repo is an open-source fork of [Tab Out](https://github.com/zarazhangrui/tab-out) by Zara Zhang. The first public version keeps the excellent tab-cleanup foundation and starts evolving it toward a connector-based command center.
 
----
+## Current State
 
-## Install with a coding agent
+Today, Command Tab is a pure Chrome extension:
 
-Send your coding agent (Claude Code, Codex, etc.) this repo and say **"install this"**:
+- Groups open tabs by domain.
+- Pulls common homepages into a cleanup group.
+- Jumps directly to any tab across Chrome windows.
+- Closes duplicates and whole domain groups.
+- Saves tabs for later in `chrome.storage.local`.
+- Supports local personal configuration through `extension/config.local.js`.
 
+## Product Direction
+
+Command Tab is moving toward:
+
+- **New-tab command center:** a dashboard that is always one keystroke away.
+- **Bring-your-own connectors:** Gmail, Google Calendar, WhatsApp, tasks, notes, files, and eventually other systems.
+- **Privacy-first defaults:** local storage first, explicit connector authorization, no silent external calls.
+- **Optional local AI:** small local models for summarizing, ranking, drafting, and routing, with cloud AI only when the user chooses it.
+- **Open extension + optional local app:** extension for the new-tab surface; local/server app for connectors that need credentials, OAuth, or filesystem access.
+
+The intended architecture is:
+
+```text
+Chrome new tab extension
+  -> local connector server or hosted connector API
+  -> user-authorized services: Gmail, Calendar, WhatsApp, tasks, files
+  -> optional model layer: local Gemma/Ollama/llama.cpp or user-provided cloud API keys
 ```
-https://github.com/zarazhangrui/tab-out
-```
 
-The agent will walk you through it. Takes about 1 minute.
+See [docs/architecture.md](docs/architecture.md) and [docs/roadmap.md](docs/roadmap.md).
 
----
+## Why A New Tab?
 
-## Features
+Most productivity apps fail because you have to remember to open them. A new-tab surface appears naturally dozens of times per day. That makes it a good place for:
 
-- **See all your tabs at a glance** on a clean grid, grouped by domain
-- **Homepages group** pulls Gmail inbox, X home, YouTube, LinkedIn, GitHub homepages into one card
-- **Close tabs with style** with swoosh sound + confetti burst
-- **Duplicate detection** flags when you have the same page open twice, with one-click cleanup
-- **Click any tab to jump to it** across windows, no new tab opened
-- **Save for later** bookmark tabs to a checklist before closing them
-- **Localhost grouping** shows port numbers next to each tab so you can tell your vibe coding projects apart
-- **Expandable groups** show the first 8 tabs with a clickable "+N more"
-- **100% local** your data never leaves your machine
-- **Pure Chrome extension** no server, no Node.js, no npm, no setup beyond loading the extension
+- the next thing to do
+- urgent replies
+- calendar context
+- tabs you can close
+- drafts that need approval
+- personal reminders
+- lightweight AI summaries
 
----
+## Install For Development
 
-## Manual Setup
-
-**1. Clone the repo**
+1. Clone the repo:
 
 ```bash
-git clone https://github.com/zarazhangrui/tab-out.git
+git clone https://github.com/bitzuist12/command-tab.git
+cd command-tab
 ```
 
-**2. Load the Chrome extension**
+2. Load the extension:
 
-1. Open Chrome and go to `chrome://extensions`
-2. Enable **Developer mode** (top-right toggle)
-3. Click **Load unpacked**
-4. Navigate to the `extension/` folder inside the cloned repo and select it
+- Open Chrome and go to `chrome://extensions`
+- Enable **Developer mode**
+- Click **Load unpacked**
+- Select the `extension/` folder
 
-**3. Open a new tab**
+3. Open a new tab.
 
-You'll see Tab Out.
+No build step is required for the current extension.
 
----
+## Local Personal Config
 
-## How it works
+You can create `extension/config.local.js` for personal overrides. This file is gitignored.
 
+Example:
+
+```js
+window.LOCAL_LANDING_PAGE_PATTERNS = [
+  { label: 'Gmail', pattern: /^https:\/\/mail\.google\.com\// },
+  { label: 'Calendar', pattern: /^https:\/\/calendar\.google\.com\// },
+];
 ```
-You open a new tab
-  -> Tab Out shows your open tabs grouped by domain
-  -> Homepages (Gmail, X, etc.) get their own group at the top
-  -> Click any tab title to jump to it
-  -> Close groups you're done with (swoosh + confetti)
-  -> Save tabs for later before closing them
+
+Do not commit tokens, secrets, personal messages, or private workspace paths.
+
+## Development Checks
+
+```bash
+node --check extension/app.js
 ```
 
-Everything runs inside the Chrome extension. No external server, no API calls, no data sent anywhere. Saved tabs are stored in `chrome.storage.local`.
+## Open-Source Notes
 
----
-
-## Tech stack
-
-| What | How |
-|------|-----|
-| Extension | Chrome Manifest V3 |
-| Storage | chrome.storage.local |
-| Sound | Web Audio API (synthesized, no files) |
-| Animations | CSS transitions + JS confetti particles |
-
----
+- This project preserves the upstream MIT license and attribution to Tab Out by Zara Zhang.
+- Command Tab will stay open source.
+- Connector implementations should be explicit about permissions and failure states.
+- No connector should pretend a failed Gmail/WhatsApp/API/model call succeeded.
 
 ## License
 
-MIT
-
----
-
-Built by [Zara](https://x.com/zarazhangrui)
+MIT. See [LICENSE](LICENSE).
