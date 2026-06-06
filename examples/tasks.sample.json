@@ -1,0 +1,26 @@
+{
+  "tasks": [
+    {
+      "id": "demo-1",
+      "title": "Review the connector contract",
+      "detail": "Open docs/connectors.md and confirm the status/source/error rules.",
+      "priority": "high",
+      "status": "todo",
+      "due": "today"
+    },
+    {
+      "id": "demo-2",
+      "title": "Keep tab cleanup useful without setup",
+      "detail": "Command Tab should still be valuable when the connector server is off.",
+      "priority": "normal",
+      "status": "todo"
+    },
+    {
+      "id": "demo-3",
+      "title": "Completed sample task",
+      "detail": "Completed tasks are hidden from the command card.",
+      "priority": "normal",
+      "status": "done"
+    }
+  ]
+}

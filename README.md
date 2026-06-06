@@ -85,7 +85,13 @@ Then Command Tab will read:
 http://127.0.0.1:8733/api/summary
 ```
 
-The first connector server returns template/disconnected cards only. This is deliberate: fake/sample connector content must be labeled clearly and never presented as real Gmail, WhatsApp, Calendar, or model output.
+The connector server includes a local Tasks connector backed by `examples/tasks.sample.json`. You can point it at your own file:
+
+```bash
+COMMAND_TAB_TASKS_FILE=/absolute/path/to/tasks.json npm run connector
+```
+
+Other connectors still return clearly labeled `disconnected` states. This is deliberate: fake/sample connector content must be labeled clearly and never presented as real Gmail, WhatsApp, Calendar, or model output.
 
 See [docs/connectors.md](docs/connectors.md).
 
