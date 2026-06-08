@@ -205,14 +205,20 @@ Shape:
 }
 ```
 
-## Native Google Calendar Connector (OAuth)
+## Native Google Connectors (OAuth)
 
-This is the first **real, standalone** connector. It talks to Google Calendar
-directly from the local connector server and does **not** require the external
-backend. It is read-only.
+These are the first **real, standalone** connectors. They talk to Google
+directly from the local connector server and do **not** require the external
+backend. Both are read-only:
 
-It is dependency-free: OAuth (PKCE), token refresh, and the Calendar API call
-all use Node's built-in `fetch`, `crypto`, and `fs`.
+- **Calendar** — upcoming events.
+- **Gmail** — recent messages (default query `in:inbox is:unread newer_than:14d`,
+  override with `COMMAND_TAB_GMAIL_QUERY`).
+
+They are dependency-free: OAuth (PKCE), token refresh, and the API calls all use
+Node's built-in `fetch`, `crypto`, and `fs`. Each service has its own scope and
+its own token file (`google-<service>-token.json`), so existing per-scope tokens
+can be reused.
 
 ### 1. Create your own Google OAuth client
 
@@ -247,15 +253,18 @@ It accepts the standard Google shape (`{ "installed": { ... } }` or
 
 ### 3. Connect from the new tab
 
-Open a new tab. The Calendar card shows **disconnected** with a
-**Connect Google Calendar** button. Click it:
+Open a new tab. The Calendar and Gmail cards show **disconnected** with a
+**Connect** button each. Click one:
 
-1. The server redirects you to Google's consent screen.
+1. The server redirects you to Google's consent screen for that scope.
 2. After you approve, Google redirects back to
    `http://127.0.0.1:8733/api/google/callback`.
-3. The refresh token is saved to `command-tab-context/google-token.json`
-   (gitignored, written `0600`).
-4. Refresh the new tab — upcoming events appear.
+3. The refresh token is saved to
+   `command-tab-context/google-<service>-token.json` (gitignored, `0600`).
+4. Refresh the new tab — events / messages appear.
+
+Calendar and Gmail authorize separately (separate scopes, separate token
+files), so you can connect one without the other.
 
 ### Configuration reference
 
@@ -264,26 +273,35 @@ Open a new tab. The Calendar card shows **disconnected** with a
 | `COMMAND_TAB_GOOGLE_CLIENT_ID` | — | OAuth client id (overrides file) |
 | `COMMAND_TAB_GOOGLE_CLIENT_SECRET` | — | OAuth client secret |
 | `COMMAND_TAB_GOOGLE_CREDENTIALS` | `command-tab-context/google-credentials.json` | Client JSON file path |
-| `COMMAND_TAB_GOOGLE_TOKEN_FILE` | `command-tab-context/google-token.json` | Where tokens are stored |
+| `COMMAND_TAB_GOOGLE_CALENDAR_TOKEN_FILE` | `command-tab-context/google-calendar-token.json` | Calendar token |
+| `COMMAND_TAB_GOOGLE_GMAIL_TOKEN_FILE` | `command-tab-context/google-gmail-token.json` | Gmail token |
 | `COMMAND_TAB_GOOGLE_CALENDAR_ID` | `primary` | Calendar to read |
+| `COMMAND_TAB_GMAIL_QUERY` | `in:inbox is:unread newer_than:14d` | Gmail search query |
+
+Reusing existing tokens: if you already have google-auth (Python) format tokens
+(they embed `client_id`/`client_secret`/`refresh_token`), just copy them to the
+token paths above — no separate credentials file needed. The connector reads
+that format and never writes back to the original files.
 
 ### Endpoints
 
 ```text
 GET /api/google/connect?scope=calendar.readonly   # starts consent (302 to Google)
+GET /api/google/connect?scope=gmail.readonly      # same, for Gmail
 GET /api/google/callback                           # OAuth redirect target
 GET /api/calendar/upcoming?hours=12                # native upcoming events (local mode)
+GET /api/gmail/latest?q=...                        # native recent messages (local mode)
 ```
 
-In external-backend mode, `/api/calendar/upcoming` continues to proxy the
-backend instead of calling Google directly.
+In external-backend mode, `/api/calendar/upcoming` and `/api/gmail/latest`
+continue to proxy the backend instead of calling Google directly.
 
 ### Failure states
 
 - No client configured -> `disconnected` with setup instructions.
 - Client configured, not authorized -> `disconnected` with a Connect action.
-- Live Calendar API call fails -> `error` with the real error message. Never a
-  cached or fake event list.
+- Live API call fails -> `error` with the real error message. Never a cached or
+  fake list.
 
 ## Status Rules
 

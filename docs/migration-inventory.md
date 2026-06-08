@@ -64,7 +64,11 @@ These do not depend on the external Hamilton backend:
 - Google Calendar read-only connector via the connector server's own OAuth
   (PKCE, dependency-free). One-click connect from the new tab, tokens stored in
   the gitignored context folder, explicit `disconnected`/`error` states.
-  Implemented in [connector-server/google.js](../connector-server/google.js).
+- Gmail read-only connector on the same OAuth path (per-service scope and token
+  file). Lists recent messages via the Gmail API into the review card.
+
+Both implemented in [connector-server/google.js](../connector-server/google.js);
+the module is service-aware and reuses existing google-auth-format tokens.
 
 ## Still To Migrate
 

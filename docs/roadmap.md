@@ -33,12 +33,14 @@ Status:
 
 - [x] Google Calendar read-only as a **native standalone** OAuth connector
   (no external backend required). One-click connect from the new tab, PKCE,
-  local token storage, visible failure states. See
-  [connectors.md](connectors.md#native-google-calendar-connector-oauth).
-- [ ] Gmail read-only as a native standalone connector (next, same OAuth path).
+  local token storage, visible failure states.
+- [x] Gmail read-only as a native standalone connector (same OAuth path,
+  per-service token). Lists recent messages via the Gmail API.
 
-Items 1-2 already work in external-backend mode; the native standalone
-versions are still open.
+See [connectors.md](connectors.md#native-google-connectors-oauth).
+
+Items 1-2 (focus task, WhatsApp) already work in external-backend mode; the
+native standalone versions are still open.
 
 Do not add automatic sending. Keep message/email sending manual and approval-based.
 
