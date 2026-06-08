@@ -1,21 +1,22 @@
 'use strict';
 
 /**
- * Native Google connector for Command Tab.
+ * Native Google connectors for Command Tab (read-only).
  *
- * This is a real, standalone OAuth connector. It does NOT depend on the
- * external Hamilton backend. It is intentionally dependency-free: it uses
- * Node's built-in fetch (Node 18+), crypto, fs, and path only.
+ * Standalone OAuth connectors that do NOT depend on the external Hamilton
+ * backend. Intentionally dependency-free: Node's built-in fetch (Node 18+),
+ * crypto, fs, and path only.
  *
  * Privacy rules this module follows:
  * - OAuth client id/secret come from the user's own Google Cloud project,
- *   supplied via env vars or a gitignored credentials file. Nothing is
- *   hardcoded into the public repo.
- * - Refresh/access tokens are written only into the gitignored context dir.
+ *   supplied via env, a gitignored credentials file, or embedded in an
+ *   existing google-auth-format token file. Nothing is hardcoded.
+ * - Tokens are written only into the gitignored context dir. We never write
+ *   back to credential files owned by other tools.
  * - Every failure is surfaced. We never present cached or fake data as live.
  *
- * Current scope: read-only Google Calendar. The OAuth plumbing is written so
- * Gmail (or other read-only Google scopes) can be added later.
+ * Services: read-only Google Calendar and read-only Gmail. Each has its own
+ * scope and its own token file so existing per-scope tokens can be reused.
  */
 
 const fs = require('fs');
@@ -30,18 +31,30 @@ const REDIRECT_URI = `http://${HOST}:${PORT}/api/google/callback`;
 const AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 
-// Short scope aliases the connect route accepts, mapped to full Google scopes.
-const SCOPE_ALIASES = {
-  'calendar.readonly': 'https://www.googleapis.com/auth/calendar.readonly',
-  'calendar': 'https://www.googleapis.com/auth/calendar.readonly',
+const SERVICES = {
+  calendar: { scope: 'https://www.googleapis.com/auth/calendar.readonly' },
+  gmail: { scope: 'https://www.googleapis.com/auth/gmail.readonly' },
 };
 
-// In-memory pending-auth state (state -> { verifier, scope, created }).
-// Cleared on use and expired after 10 minutes.
+// Accepted short scope aliases on the connect route.
+const SCOPE_ALIASES = {
+  'calendar.readonly': SERVICES.calendar.scope,
+  'calendar': SERVICES.calendar.scope,
+  'gmail.readonly': SERVICES.gmail.scope,
+  'gmail': SERVICES.gmail.scope,
+};
+
+// In-memory pending-auth state (state -> { verifier, scope, service, created }).
 const pendingAuth = new Map();
 
-function tokenFilePath() {
-  return process.env.COMMAND_TAB_GOOGLE_TOKEN_FILE || path.join(CONTEXT_DIR, 'google-token.json');
+function tokenFilePath(service) {
+  const envKey = `COMMAND_TAB_GOOGLE_${service.toUpperCase()}_TOKEN_FILE`;
+  if (process.env[envKey]) return process.env[envKey];
+  // Legacy single-token override applies to calendar only.
+  if (service === 'calendar' && process.env.COMMAND_TAB_GOOGLE_TOKEN_FILE) {
+    return process.env.COMMAND_TAB_GOOGLE_TOKEN_FILE;
+  }
+  return path.join(CONTEXT_DIR, `google-${service}-token.json`);
 }
 
 function credentialsFilePath() {
@@ -52,11 +65,21 @@ function calendarId() {
   return process.env.COMMAND_TAB_GOOGLE_CALENDAR_ID || 'primary';
 }
 
+function gmailQuery() {
+  return process.env.COMMAND_TAB_GMAIL_QUERY || 'in:inbox is:unread newer_than:14d';
+}
+
+function serviceForScope(scope) {
+  for (const [name, def] of Object.entries(SERVICES)) {
+    if (def.scope === scope) return name;
+  }
+  return 'calendar';
+}
+
 /**
- * Load OAuth client credentials from env first, then a credentials file in the
- * Google-downloaded shape ({ installed: {...} } or { web: {...} }), then any
- * client id/secret embedded in an existing token file (the google-auth Python
- * token format embeds them). Returns null if no client is configured.
+ * Resolve OAuth client credentials from env first, then a credentials file in
+ * the Google-downloaded shape ({ installed } / { web }), then any client
+ * id/secret embedded in an existing token file. Returns null if unconfigured.
  */
 function loadClientConfig(rawToken) {
   const envId = process.env.COMMAND_TAB_GOOGLE_CLIENT_ID;
@@ -80,25 +103,14 @@ function loadClientConfig(rawToken) {
     return { client_id: block.client_id, client_secret: block.client_secret, source: file };
   }
 
-  // Fall back to credentials embedded in the token file (google-auth format).
-  const token = rawToken || readTokenFile();
-  if (token && token.client_id && token.client_secret) {
-    return { client_id: token.client_id, client_secret: token.client_secret, source: 'token' };
+  if (rawToken && rawToken.client_id && rawToken.client_secret) {
+    return { client_id: rawToken.client_id, client_secret: rawToken.client_secret, source: 'token' };
   }
   return null;
 }
 
-function isConfigured() {
-  try {
-    return Boolean(loadClientConfig());
-  } catch (_error) {
-    return true; // misconfigured but present; surface the error elsewhere
-  }
-}
-
-/** Read the raw token file as-is (preserving any extra fields). */
-function readTokenFile() {
-  const file = tokenFilePath();
+function readTokenFile(service) {
+  const file = tokenFilePath(service);
   if (!fs.existsSync(file)) return null;
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
@@ -125,15 +137,10 @@ function normalizeToken(raw) {
   };
 }
 
-/** Write the raw token object back, preserving format and fields. */
-function writeTokenFile(raw) {
-  const file = tokenFilePath();
+function writeTokenFile(service, raw) {
+  const file = tokenFilePath(service);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify(raw, null, 2)}\n`, { mode: 0o600 });
-}
-
-function saveToken(token) {
-  writeTokenFile(token);
 }
 
 function base64url(buffer) {
@@ -153,20 +160,18 @@ function cleanupPendingAuth() {
   }
 }
 
-/**
- * Build the Google consent URL for a loopback/desktop OAuth client using PKCE.
- * Returns { url, state }.
- */
+/** Build the Google consent URL (PKCE, loopback redirect). Returns { url, state }. */
 function buildConsentUrl(scopeParam) {
   const client = loadClientConfig();
   if (!client) throw new Error('No Google client configured.');
   cleanupPendingAuth();
 
   const scope = resolveScope(scopeParam);
+  const service = serviceForScope(scope);
   const state = base64url(crypto.randomBytes(24));
   const verifier = base64url(crypto.randomBytes(32));
   const challenge = base64url(crypto.createHash('sha256').update(verifier).digest());
-  pendingAuth.set(state, { verifier, scope, created: Date.now() });
+  pendingAuth.set(state, { verifier, scope, service, created: Date.now() });
 
   const params = new URLSearchParams({
     client_id: client.client_id,
@@ -204,10 +209,7 @@ async function postToken(body) {
   return data;
 }
 
-/**
- * Exchange an authorization code for tokens and persist them.
- * Returns the saved token record.
- */
+/** Exchange an authorization code for tokens and persist them for the service. */
 async function exchangeCode(code, state) {
   const entry = pendingAuth.get(state);
   if (!entry) throw new Error('Unknown or expired auth state. Start the connect flow again.');
@@ -232,27 +234,27 @@ async function exchangeCode(code, state) {
   const token = {
     refresh_token: data.refresh_token,
     access_token: data.access_token || '',
+    token: data.access_token || '',
     expires_at: data.expires_in ? Date.now() + (Number(data.expires_in) - 60) * 1000 : 0,
     scope: data.scope || entry.scope,
     token_type: data.token_type || 'Bearer',
+    client_id: client.client_id,
+    client_secret: client.client_secret,
     obtained_at: new Date().toISOString(),
   };
-  saveToken(token);
+  writeTokenFile(entry.service, token);
   return token;
 }
 
-/**
- * Return a valid access token, refreshing via the stored refresh token when
- * the cached access token is missing or expired. Persists refreshed tokens.
- */
-async function getAccessToken() {
-  const raw = readTokenFile();
-  if (!raw) throw new Error('Google is not connected yet. Use the connect action to authorize.');
+/** Return a valid access token for a service, refreshing as needed. */
+async function getAccessToken(service) {
+  const raw = readTokenFile(service);
+  if (!raw) throw new Error(`Google ${service} is not connected yet. Use the connect action to authorize.`);
   const client = loadClientConfig(raw);
   if (!client) throw new Error('Google connector is not configured. Add OAuth client credentials.');
   const norm = normalizeToken(raw);
   if (!norm.refresh_token) {
-    throw new Error('Google token has no refresh token. Reconnect to grant offline access.');
+    throw new Error(`Google ${service} token has no refresh token. Reconnect to grant offline access.`);
   }
   if (norm.access_token && norm.expires_at && norm.expires_at > Date.now()) {
     return norm.access_token;
@@ -265,21 +267,19 @@ async function getAccessToken() {
     grant_type: 'refresh_token',
   });
   const accessToken = data.access_token || '';
-  const expiresAt = data.expires_in ? Date.now() + (Number(data.expires_in) - 60) * 1000 : 0;
   // Merge into the existing raw object so we never drop embedded fields
   // (client_id/secret/token_uri) when the token came from another tool.
   raw.access_token = accessToken;
   raw.token = accessToken;
-  raw.expires_at = expiresAt;
+  raw.expires_at = data.expires_in ? Date.now() + (Number(data.expires_in) - 60) * 1000 : 0;
   if (data.expires_in) raw.expiry = new Date(Date.now() + Number(data.expires_in) * 1000).toISOString();
   if (data.scope) raw.scope = data.scope;
   raw.refreshed_at = new Date().toISOString();
-  writeTokenFile(raw);
+  writeTokenFile(service, raw);
   return accessToken;
 }
 
-async function googleGet(apiUrl) {
-  const accessToken = await getAccessToken();
+async function googleFetch(accessToken, apiUrl) {
   const res = await fetch(apiUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
   const text = await res.text();
   let data = {};
@@ -297,10 +297,13 @@ async function googleGet(apiUrl) {
   return data;
 }
 
+// ---------------------------------------------------------------------------
+// Calendar
+// ---------------------------------------------------------------------------
+
 function formatEventTime(event) {
   const start = event.start || {};
   if (start.date && !start.dateTime) {
-    // All-day event.
     try {
       const label = new Date(`${start.date}T00:00:00`).toLocaleDateString(undefined, {
         weekday: 'short', month: 'short', day: 'numeric',
@@ -323,18 +326,17 @@ function formatEventTime(event) {
 }
 
 async function listUpcomingEvents({ hours = 12, max = 8 } = {}) {
+  const accessToken = await getAccessToken('calendar');
   const now = new Date();
-  const timeMin = now.toISOString();
-  const timeMax = new Date(now.getTime() + Math.max(1, hours) * 3600 * 1000).toISOString();
   const params = new URLSearchParams({
-    timeMin,
-    timeMax,
+    timeMin: now.toISOString(),
+    timeMax: new Date(now.getTime() + Math.max(1, hours) * 3600 * 1000).toISOString(),
     singleEvents: 'true',
     orderBy: 'startTime',
     maxResults: String(Math.max(1, Math.min(50, max * 2))),
   });
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId())}/events?${params.toString()}`;
-  const data = await googleGet(url);
+  const data = await googleFetch(accessToken, url);
   const events = Array.isArray(data.items) ? data.items : [];
   return events
     .filter(event => event.status !== 'cancelled')
@@ -346,15 +348,11 @@ async function listUpcomingEvents({ hours = 12, max = 8 } = {}) {
     }));
 }
 
-/**
- * Build the Calendar connector card for /api/summary. Honors the contract:
- * disconnected when no client/token, error on live-call failure, ok otherwise.
- */
 async function readCalendarConnector(now, { hours = 12 } = {}) {
   const base = { id: 'calendar', label: 'Calendar', kind: 'oauth', generated_at: now };
   const connectAction = { label: 'Connect Google Calendar', url: `http://${HOST}:${PORT}/api/google/connect?scope=calendar.readonly` };
 
-  const token = readTokenFile();
+  const token = readTokenFile('calendar');
   let client;
   try {
     client = loadClientConfig(token);
@@ -371,13 +369,12 @@ async function readCalendarConnector(now, { hours = 12 } = {}) {
       actions: [],
     };
   }
-
   if (!token || !normalizeToken(token).refresh_token) {
     return {
       ...base,
       status: 'disconnected',
       source: 'none',
-      error: 'Google client configured but not authorized yet. Click Connect to grant read-only Calendar access.',
+      error: 'Google client configured but Calendar is not authorized yet. Click Connect to grant read-only access.',
       items: [],
       actions: [connectAction],
     };
@@ -395,16 +392,105 @@ async function readCalendarConnector(now, { hours = 12 } = {}) {
       actions: [{ label: 'Refresh', command: 'refresh-command-center' }],
     };
   } catch (error) {
+    return { ...base, status: 'error', source: 'live', error: `Calendar API error: ${error.message}`, items: [], actions: [connectAction] };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Gmail
+// ---------------------------------------------------------------------------
+
+function header(payload, name) {
+  const headers = (payload && Array.isArray(payload.headers)) ? payload.headers : [];
+  const found = headers.find(h => String(h.name || '').toLowerCase() === name.toLowerCase());
+  return found ? String(found.value || '') : '';
+}
+
+function decodeSnippet(text) {
+  // Gmail snippets HTML-encode a few entities; decode the common ones.
+  return String(text || '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+}
+
+async function listRecentMail({ query, max = 8 } = {}) {
+  const accessToken = await getAccessToken('gmail');
+  const q = query || gmailQuery();
+  const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${Math.max(1, Math.min(25, max))}&q=${encodeURIComponent(q)}`;
+  const list = await googleFetch(accessToken, listUrl);
+  const messages = Array.isArray(list.messages) ? list.messages : [];
+
+  const items = [];
+  for (const message of messages.slice(0, max)) {
+    const detailUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`;
+    const detail = await googleFetch(accessToken, detailUrl);
+    const subject = header(detail.payload, 'Subject') || '(no subject)';
+    const from = header(detail.payload, 'From');
+    const date = header(detail.payload, 'Date');
+    const snippet = decodeSnippet(detail.snippet);
+    items.push({
+      id: message.id,
+      title: subject.slice(0, 160),
+      sender: from.slice(0, 160),
+      detail: [from, snippet].filter(Boolean).join(' · ').slice(0, 240),
+      body: snippet.slice(0, 600),
+      timestamp: date,
+    });
+  }
+  return items;
+}
+
+async function readGmailConnector(now, { query, max = 8 } = {}) {
+  const base = { id: 'gmail', label: 'Gmail', kind: 'oauth', generated_at: now };
+  const connectAction = { label: 'Connect Gmail', url: `http://${HOST}:${PORT}/api/google/connect?scope=gmail.readonly` };
+
+  const token = readTokenFile('gmail');
+  let client;
+  try {
+    client = loadClientConfig(token);
+  } catch (error) {
+    return { ...base, status: 'error', source: 'none', error: error.message, items: [], actions: [connectAction] };
+  }
+  if (!client) {
     return {
       ...base,
-      status: 'error',
-      source: 'live',
-      error: `Calendar API error: ${error.message}`,
+      status: 'disconnected',
+      source: 'none',
+      error: `Not configured. Add a Google OAuth client via COMMAND_TAB_GOOGLE_CLIENT_ID/SECRET or ${credentialsFilePath()}, then click Connect.`,
+      items: [],
+      actions: [],
+    };
+  }
+  if (!token || !normalizeToken(token).refresh_token) {
+    return {
+      ...base,
+      status: 'disconnected',
+      source: 'none',
+      error: 'Google client configured but Gmail is not authorized yet. Click Connect to grant read-only access.',
       items: [],
       actions: [connectAction],
     };
   }
+
+  try {
+    const items = await listRecentMail({ query, max });
+    return {
+      ...base,
+      status: 'ok',
+      source: 'live',
+      error: null,
+      summary: `${items.length} message${items.length === 1 ? '' : 's'} · ${gmailQuery()}`,
+      items,
+      actions: [{ label: 'Refresh', command: 'refresh-command-center' }],
+    };
+  } catch (error) {
+    return { ...base, status: 'error', source: 'live', error: `Gmail API error: ${error.message}`, items: [], actions: [connectAction] };
+  }
 }
+
+// ---------------------------------------------------------------------------
+// OAuth route handlers (served by the connector server)
+// ---------------------------------------------------------------------------
 
 function htmlPage(title, message, accent = '#1a7f37') {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
@@ -444,16 +530,18 @@ async function handleCallback(req, res, url) {
   }
   try {
     await exchangeCode(code, state);
-    sendHtml(res, 200, htmlPage('Google Calendar connected', 'You can close this tab and refresh your Command Tab new tab. Your upcoming events will appear in the Calendar card.'));
+    sendHtml(res, 200, htmlPage('Google connected', 'You can close this tab and refresh your Command Tab new tab.'));
   } catch (err) {
     sendHtml(res, 400, htmlPage('Google authorization failed', `${err.message} You can close this tab and try again.`, '#d1242f'));
   }
 }
 
 module.exports = {
-  isConfigured,
+  isConfigured: () => Boolean(loadClientConfig()),
   readCalendarConnector,
+  readGmailConnector,
   listUpcomingEvents,
+  listRecentMail,
   handleConnect,
   handleCallback,
   tokenFilePath,

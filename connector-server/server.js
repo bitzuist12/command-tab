@@ -824,7 +824,10 @@ async function summaryPayload() {
       connectors,
     };
   }
-  const calendarConnector = await google.readCalendarConnector(now);
+  const [calendarConnector, gmailConnector] = await Promise.all([
+    google.readCalendarConnector(now),
+    google.readGmailConnector(now),
+  ]);
   return {
     status: 'ok',
     source: 'live',
@@ -833,18 +836,9 @@ async function summaryPayload() {
     connectors: [
       readTasksConnector(now),
       readWhatsAppConnector(now),
+      gmailConnector,
       calendarConnector,
       readNotesConnector(now),
-      {
-        id: 'gmail',
-        label: 'Gmail',
-        kind: 'oauth',
-        status: 'disconnected',
-        generated_at: now,
-        source: 'none',
-        error: 'Gmail is not connected. Future connector should use explicit OAuth and visible failure states.',
-        items: [],
-      },
       {
         id: 'local-ai',
         label: 'Local AI',
@@ -909,6 +903,20 @@ const server = http.createServer((req, res) => {
         generated_at: new Date().toISOString(),
         error: error.message || String(error),
         events: [],
+      }));
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/gmail/latest' && !EXTERNAL_BACKEND_URL) {
+    google.listRecentMail({ query: url.searchParams.get('q') || undefined })
+      .then(items => json(res, 200, { status: 'ok', source: 'live', generated_at: new Date().toISOString(), items }))
+      .catch(error => json(res, 502, {
+        status: 'error',
+        source: 'live',
+        service: 'gmail',
+        generated_at: new Date().toISOString(),
+        error: error.message || String(error),
+        items: [],
       }));
     return;
   }
