@@ -205,6 +205,86 @@ Shape:
 }
 ```
 
+## Native Google Calendar Connector (OAuth)
+
+This is the first **real, standalone** connector. It talks to Google Calendar
+directly from the local connector server and does **not** require the external
+backend. It is read-only.
+
+It is dependency-free: OAuth (PKCE), token refresh, and the Calendar API call
+all use Node's built-in `fetch`, `crypto`, and `fs`.
+
+### 1. Create your own Google OAuth client
+
+In your own Google Cloud project:
+
+1. Enable the **Google Calendar API**.
+2. Create an **OAuth client ID** of type **Desktop app** (loopback redirect).
+3. Add the scope `https://www.googleapis.com/auth/calendar.readonly`.
+
+The connector uses the redirect URI `http://127.0.0.1:8733/api/google/callback`.
+A Desktop-app client allows loopback redirects, so no extra registration is
+needed.
+
+### 2. Give the connector your client credentials
+
+Either set environment variables:
+
+```bash
+COMMAND_TAB_GOOGLE_CLIENT_ID=...apps.googleusercontent.com \
+COMMAND_TAB_GOOGLE_CLIENT_SECRET=... \
+npm run connector
+```
+
+Or drop the downloaded client JSON into your gitignored context folder:
+
+```text
+command-tab-context/google-credentials.json
+```
+
+It accepts the standard Google shape (`{ "installed": { ... } }` or
+`{ "web": { ... } }`).
+
+### 3. Connect from the new tab
+
+Open a new tab. The Calendar card shows **disconnected** with a
+**Connect Google Calendar** button. Click it:
+
+1. The server redirects you to Google's consent screen.
+2. After you approve, Google redirects back to
+   `http://127.0.0.1:8733/api/google/callback`.
+3. The refresh token is saved to `command-tab-context/google-token.json`
+   (gitignored, written `0600`).
+4. Refresh the new tab — upcoming events appear.
+
+### Configuration reference
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `COMMAND_TAB_GOOGLE_CLIENT_ID` | — | OAuth client id (overrides file) |
+| `COMMAND_TAB_GOOGLE_CLIENT_SECRET` | — | OAuth client secret |
+| `COMMAND_TAB_GOOGLE_CREDENTIALS` | `command-tab-context/google-credentials.json` | Client JSON file path |
+| `COMMAND_TAB_GOOGLE_TOKEN_FILE` | `command-tab-context/google-token.json` | Where tokens are stored |
+| `COMMAND_TAB_GOOGLE_CALENDAR_ID` | `primary` | Calendar to read |
+
+### Endpoints
+
+```text
+GET /api/google/connect?scope=calendar.readonly   # starts consent (302 to Google)
+GET /api/google/callback                           # OAuth redirect target
+GET /api/calendar/upcoming?hours=12                # native upcoming events (local mode)
+```
+
+In external-backend mode, `/api/calendar/upcoming` continues to proxy the
+backend instead of calling Google directly.
+
+### Failure states
+
+- No client configured -> `disconnected` with setup instructions.
+- Client configured, not authorized -> `disconnected` with a Connect action.
+- Live Calendar API call fails -> `error` with the real error message. Never a
+  cached or fake event list.
+
 ## Status Rules
 
 - `ok`: live connector data.

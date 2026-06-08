@@ -29,6 +29,17 @@ Recommended order:
 3. Gmail read-only digest and review actions.
 4. Google Calendar read-only.
 
+Status:
+
+- [x] Google Calendar read-only as a **native standalone** OAuth connector
+  (no external backend required). One-click connect from the new tab, PKCE,
+  local token storage, visible failure states. See
+  [connectors.md](connectors.md#native-google-calendar-connector-oauth).
+- [ ] Gmail read-only as a native standalone connector (next, same OAuth path).
+
+Items 1-2 already work in external-backend mode; the native standalone
+versions are still open.
+
 Do not add automatic sending. Keep message/email sending manual and approval-based.
 
 ## Phase 3: Local AI

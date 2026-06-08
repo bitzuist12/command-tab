@@ -12,6 +12,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const google = require('./google');
 
 const HOST = process.env.COMMAND_TAB_HOST || '127.0.0.1';
 const PORT = Number.parseInt(process.env.COMMAND_TAB_PORT || '8733', 10);
@@ -823,6 +824,7 @@ async function summaryPayload() {
       connectors,
     };
   }
+  const calendarConnector = await google.readCalendarConnector(now);
   return {
     status: 'ok',
     source: 'live',
@@ -831,6 +833,7 @@ async function summaryPayload() {
     connectors: [
       readTasksConnector(now),
       readWhatsAppConnector(now),
+      calendarConnector,
       readNotesConnector(now),
       {
         id: 'gmail',
@@ -877,6 +880,36 @@ const server = http.createServer((req, res) => {
       context_dir: CONTEXT_DIR,
       backend_url: EXTERNAL_BACKEND_URL || null,
     });
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/google/connect') {
+    google.handleConnect(req, res, url);
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/google/callback') {
+    google.handleCallback(req, res, url).catch(error => json(res, 500, {
+      status: 'error',
+      error: `Google callback failed: ${error.message || error}`,
+      generated_at: new Date().toISOString(),
+    }));
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/calendar/upcoming' && !EXTERNAL_BACKEND_URL) {
+    const parsedHours = Number.parseInt(url.searchParams.get('hours') || '12', 10);
+    const hours = Number.isFinite(parsedHours) && parsedHours > 0 ? parsedHours : 12;
+    google.listUpcomingEvents({ hours })
+      .then(events => json(res, 200, { status: 'ok', source: 'live', generated_at: new Date().toISOString(), events }))
+      .catch(error => json(res, 502, {
+        status: 'error',
+        source: 'live',
+        service: 'calendar',
+        generated_at: new Date().toISOString(),
+        error: error.message || String(error),
+        events: [],
+      }));
     return;
   }
 

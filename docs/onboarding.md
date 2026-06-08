@@ -58,7 +58,21 @@ The extension reads that endpoint and renders the connector cards.
 COMMAND_TAB_CONTEXT_DIR=/absolute/path/to/my-command-tab-context npm run connector
 ```
 
-## 6. Safety Rules
+## 6. Optional: Connect Google Calendar
+
+Command Tab can read your upcoming events directly (read-only), without the
+external backend:
+
+1. Create your own Google OAuth **Desktop app** client and enable the
+   Calendar API.
+2. Put the client JSON at `command-tab-context/google-credentials.json`
+   (or set `COMMAND_TAB_GOOGLE_CLIENT_ID` / `COMMAND_TAB_GOOGLE_CLIENT_SECRET`).
+3. Open a new tab and click **Connect Google Calendar** on the Calendar card.
+
+Tokens are stored in `command-tab-context/google-token.json` (gitignored).
+See [connectors.md](connectors.md) for the full setup.
+
+## 7. Safety Rules
 
 - Do not commit your real context folder.
 - Do not put access tokens or passwords in browser extension files.

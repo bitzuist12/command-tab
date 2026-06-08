@@ -9,3 +9,7 @@ extension/config.local.js
 
 # Private user context. Use examples/context as the template.
 command-tab-context/
+
+# Google OAuth client + tokens (never commit, even outside the context folder)
+google-credentials.json
+google-token.json

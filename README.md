@@ -115,6 +115,10 @@ COMMAND_TAB_TASKS_FILE=/absolute/path/to/tasks.json npm run connector
 
 Other external-service connectors still return clearly labeled `disconnected` states. This is deliberate: fake/sample connector content must be labeled clearly and never presented as real Gmail, WhatsApp, Calendar, or model output.
 
+### Native Google Calendar (read-only)
+
+Command Tab can read your upcoming events directly via its own OAuth flow — no external backend required. Add your own Google OAuth Desktop-app client (env vars or `command-tab-context/google-credentials.json`), then click **Connect Google Calendar** on the new tab. Tokens are stored locally and gitignored; failures are shown, never faked.
+
 See [docs/connectors.md](docs/connectors.md).
 
 ## Local Personal Config

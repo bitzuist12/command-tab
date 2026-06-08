@@ -57,6 +57,15 @@ COMMAND_TAB_BACKEND_URL=http://127.0.0.1:8765 npm run connector
 - Codex open bridge through `POST /api/codex/open`, with the local workspace path stored in browser storage instead of hardcoded in the public repo.
 - Clear `ok`, `template`, `disconnected`, and `error` states.
 
+## Native Standalone Connectors (Phase 2)
+
+These do not depend on the external Hamilton backend:
+
+- Google Calendar read-only connector via the connector server's own OAuth
+  (PKCE, dependency-free). One-click connect from the new tab, tokens stored in
+  the gitignored context folder, explicit `disconnected`/`error` states.
+  Implemented in [connector-server/google.js](../connector-server/google.js).
+
 ## Still To Migrate
 
 - No known old Tab Out / Hamilton command-center parity gaps remain in this inventory.
