@@ -24,8 +24,8 @@
 
 Recommended order:
 
-1. Task actions: quick-add, check, pin, remind, note append.
-2. WhatsApp local bridge health + manual send queue.
+1. Top/focus task presentation and task-to-WhatsApp modal.
+2. WhatsApp manual send queue with bridge preflight.
 3. Gmail read-only digest and review actions.
 4. Google Calendar read-only.
 

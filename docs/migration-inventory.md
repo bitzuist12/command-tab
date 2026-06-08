@@ -32,30 +32,35 @@ COMMAND_TAB_BACKEND_URL=http://127.0.0.1:8765 npm run connector
   - calendar upcoming items
   - habits, voice notes, and agent runs summary
 - Generic backend proxy route under `/api/backend/...`.
+- Direct Hamilton-compatible backend routes for task notes, task agents, WhatsApp latest/latest HTML/daily plan/bridge health/refresh, Gmail latest/refresh, morning brief, automation outputs, daily shot, habits, Vietnamese study, voice notes, calendar, agent runs/inbox, memory search/open/brief/reindex, and Codex open.
+- Task add from the tab UI via `/api/tasks/add`.
+- Task check, pin, remind, release-focus, note append, title, and agent action routes.
+- Task card controls for check, pin, remind, later, note, and agent.
+- Task-to-WhatsApp modal with manual send and connector-side bridge preflight.
+- Top/focus task presentation and nudge detection.
+- WhatsApp bridge restart action with explicit restart diagnostics.
+- WhatsApp daily-plan mini-card with inline draft review and manual send.
+- WhatsApp daily-plan sends use a connector-side bridge health preflight.
+- WhatsApp review card with search, Reviewed, and Later local state.
+- Gmail review card with search, Reviewed, Later, Block sender, and Copy local actions.
+- WhatsApp/Gmail review sorting.
+- Gmail review task creation.
+- Daily Systems card with habit check controls, gratitude save, Vietnamese study, daily shot save, voice note open/folder, and agent run rows.
+- Habit metric entry/save.
+- Voice note playback for latest note text.
+- Richer Calendar card for upcoming events.
+- Agent Inbox card with status/detail rows and open-run actions.
+- Expandable detail panes for Gmail/WhatsApp review rows and Agent Inbox rows.
+- Memory Search card with backend search, open-result, brief, and reindex actions.
+- Editable local Notes card with save/delete.
+- Connector settings UI for the local connector URL plus setup command hints.
+- Codex open bridge through `POST /api/codex/open`, with the local workspace path stored in browser storage instead of hardcoded in the public repo.
 - Clear `ok`, `template`, `disconnected`, and `error` states.
 
 ## Still To Migrate
 
-- Top/focus task UI.
-- Task quick-add.
-- Task check, pin, remind, release-focus, and note append actions.
-- Task-to-WhatsApp modal.
-- Task-to-agent action.
-- Full WhatsApp daily-plan mini-card with inline draft review and manual send.
-- WhatsApp bridge restart button.
-- WhatsApp manual send with preflight health check.
-- WhatsApp review search, sort, select, reviewed, and later actions.
-- Gmail review search, sort, select, reviewed, later, block-sender, copy-reply, and task creation actions.
-- Calendar card UI beyond summary rows.
-- Gratitude card.
-- Habits check/save UI.
-- Vietnamese study card.
-- Voice notes open/play surfaces.
-- Daily shot card.
-- Agent inbox and latest agent-run UI.
-- Memory/project search surfaces.
-- Editable note cards.
-- Connector settings UI.
+- No known old Tab Out / Hamilton command-center parity gaps remain in this inventory.
+- Future product work: package the connector, add screenshots, add contribution docs, and continue replacing Hamilton-specific assumptions with public connector contracts.
 
 ## Migration Principle
 

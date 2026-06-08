@@ -31,7 +31,61 @@ To connect an existing local command-center backend:
 COMMAND_TAB_BACKEND_URL=http://127.0.0.1:8765 npm run connector
 ```
 
-When a backend URL is configured, `/api/summary` attempts compatible backend calls for tasks, WhatsApp bridge/daily plan/latest review, Gmail latest review, calendar upcoming, habits, voice notes, and agent runs. Each failed call returns an explicit `error` connector instead of sample content.
+When a backend URL is configured, `/api/summary` attempts compatible backend calls for tasks, WhatsApp bridge/daily plan/latest review, Gmail latest review, calendar upcoming, habits, voice notes, memory, and agent runs. Each failed call returns an explicit `error` connector instead of sample content.
+
+## Hamilton-Compatible Backend Surface
+
+When `COMMAND_TAB_BACKEND_URL` is set, the connector server exposes the old local command-center API surface through the public Command Tab connector:
+
+```text
+GET  /api/tasks
+GET  /api/task-note?id=...
+GET  /api/task-agent?note_id=...
+GET  /api/whatsapp/latest
+GET  /api/whatsapp/latest-html
+GET  /api/whatsapp/daily-plan
+GET  /api/whatsapp/bridge-health
+GET  /api/gmail/latest
+GET  /api/automation-output/latest?slug=...
+GET  /api/morning-brief
+GET  /api/daily-shot/latest?limit=...
+GET  /api/habits/today
+GET  /api/vietnamese/today?offset=...
+GET  /api/voice-notes/today
+GET  /api/calendar/upcoming?hours=...
+GET  /api/agent-runs?limit=...
+GET  /api/agent-inbox?limit=...
+GET  /api/memory/search?q=...&project=...&workspace=...&kind=...&include_code=...
+POST /api/tasks/add
+POST /api/tasks/check
+POST /api/tasks/pin
+POST /api/tasks/remind
+POST /api/tasks/release-focus
+POST /api/tasks/move-top
+POST /api/tasks/move-bottom
+POST /api/tasks/title
+POST /api/tasks/note-append
+POST /api/tasks/agent
+POST /api/task-note
+POST /api/whatsapp/refresh
+POST /api/whatsapp/daily-plan
+POST /api/whatsapp/daily-plan/send
+POST /api/whatsapp/bridge-restart
+POST /api/whatsapp/send
+POST /api/gmail/refresh
+POST /api/gratitude
+POST /api/daily-shot/log
+POST /api/habits/check
+POST /api/vietnamese/study
+POST /api/voice-notes/open
+POST /api/voice-notes/open-folder
+POST /api/memory/open
+POST /api/memory/brief
+POST /api/memory/reindex
+POST /api/codex/open
+```
+
+WhatsApp send endpoints perform bridge-health preflight in the connector before forwarding. If the bridge is down, the request fails visibly with the preflight error.
 
 ## Summary Endpoint
 
@@ -165,8 +219,8 @@ The extension must show these states clearly.
 
 Recommended order:
 
-1. Task actions: quick-add, check, pin, remind, note append.
-2. WhatsApp bridge restart and manual-send queue.
+1. Top/focus task presentation and task-to-WhatsApp modal.
+2. WhatsApp manual-send queue with preflight health check.
 3. Gmail review actions: search, sort, reviewed/later, block sender, copy reply.
 4. Daily systems cards: habits, gratitude, voice notes, daily shot.
 5. Local model adapter.
