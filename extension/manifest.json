@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "A private command center for your Chrome new tab: tabs today, connectors and local AI next.",
   "permissions": ["tabs", "activeTab", "storage"],
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*"],
   "chrome_url_overrides": { "newtab": "index.html" },
   "background": { "service_worker": "background.js" },
   "action": {
