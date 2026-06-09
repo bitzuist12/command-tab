@@ -30,9 +30,28 @@ const DEFAULT_CONNECTOR_URL = 'http://127.0.0.1:8733';
 const CONNECTOR_URL_STORAGE_KEY = 'command-tab:connector-url';
 const CODEX_PATH_STORAGE_KEY = 'command-tab:codex-path';
 const REVIEW_SORT_STORAGE_KEY = 'command-tab:review-sort';
+const HIDDEN_CONNECTORS_STORAGE_KEY = 'command-tab:hidden-connectors';
 
 function connectorBaseUrl() {
   return (localStorage.getItem(CONNECTOR_URL_STORAGE_KEY) || window.COMMAND_TAB_CONNECTOR_URL || DEFAULT_CONNECTOR_URL).replace(/\/$/, '');
+}
+
+// Per-connector visibility. A connector id in this set is hidden from the grid.
+function getHiddenConnectors() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(HIDDEN_CONNECTORS_STORAGE_KEY) || '[]');
+    return new Set(Array.isArray(raw) ? raw.map(String) : []);
+  } catch (_error) {
+    return new Set();
+  }
+}
+
+function isConnectorHidden(id) {
+  return getHiddenConnectors().has(String(id));
+}
+
+function setHiddenConnectors(set) {
+  localStorage.setItem(HIDDEN_CONNECTORS_STORAGE_KEY, JSON.stringify([...set]));
 }
 
 /**
@@ -1031,7 +1050,14 @@ function renderCommandCenterHtml(summary) {
   }
 
   const connectors = Array.isArray(summary.connectors) ? summary.connectors : [];
-  const okCount = connectors.filter(c => c.status === 'ok').length;
+  const hidden = getHiddenConnectors();
+  const visibleConnectors = connectors.filter(c => !hidden.has(String(c.id)));
+  const okCount = visibleConnectors.filter(c => c.status === 'ok').length;
+  const toggleRows = connectors.map(c => `
+          <label class="command-connector-toggle">
+            <input type="checkbox" data-role="command-connector-toggle" data-connector-id="${escapeHtml(c.id)}" ${hidden.has(String(c.id)) ? '' : 'checked'}>
+            <span>${escapeHtml(c.label || c.id)}</span>
+          </label>`).join('');
   return `
     <section class="command-center">
       <button class="command-center-head" data-action="refresh-command-center" type="button">
@@ -1052,6 +1078,10 @@ function renderCommandCenterHtml(summary) {
             <span>Codex path</span>
             <input class="command-task-input" data-role="command-settings-codex-path" value="${escapeHtml(localStorage.getItem(CODEX_PATH_STORAGE_KEY) || '')}" placeholder="Optional local workspace path">
           </label>
+          ${toggleRows ? `<div class="command-connector-toggles">
+            <span class="command-plan-title">Show connectors</span>
+            <div class="command-connector-toggle-grid">${toggleRows}</div>
+          </div>` : ''}
           <button class="command-task-mini" type="submit">Save</button>
           <button class="command-task-mini" data-action="command-codex-open" type="button">Open Codex</button>
         </form>
@@ -1063,7 +1093,7 @@ function renderCommandCenterHtml(summary) {
         </div>
       </details>
       <div class="command-grid">
-        ${connectors.map(renderConnectorCard).join('') || '<div class="command-empty">No connectors configured yet.</div>'}
+        ${visibleConnectors.map(renderConnectorCard).join('') || '<div class="command-empty">All connectors hidden. Enable some in Settings.</div>'}
       </div>
     </section>`;
 }
@@ -2625,6 +2655,14 @@ document.addEventListener('submit', async (e) => {
     localStorage.removeItem(CODEX_PATH_STORAGE_KEY);
   } else {
     localStorage.setItem(CODEX_PATH_STORAGE_KEY, codexPath);
+  }
+  const toggles = form.querySelectorAll('[data-role="command-connector-toggle"]');
+  if (toggles.length) {
+    const hidden = new Set();
+    toggles.forEach(toggle => {
+      if (!toggle.checked) hidden.add(String(toggle.dataset.connectorId));
+    });
+    setHiddenConnectors(hidden);
   }
   await renderCommandCenter();
   showToast('Connector settings saved');

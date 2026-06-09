@@ -771,6 +771,32 @@ header {
   gap: 3px;
 }
 
+.command-connector-toggles {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.command-connector-toggle-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.command-connector-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.command-connector-toggle input {
+  cursor: pointer;
+  accent-color: var(--ink);
+}
+
 .command-setup-help {
   display: grid;
   gap: 5px;
