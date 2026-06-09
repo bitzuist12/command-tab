@@ -18,7 +18,7 @@
 - [x] Add a private context folder convention.
 - [x] Add local WhatsApp/message draft and notes context cards.
 - [x] Add external backend compatibility mode for the Hamilton-style prototype.
-- [ ] Add connector settings UI.
+- [x] Add connector settings UI (connector URL + per-connector show/hide toggles).
 
 ## Phase 2: First Real Connectors
 
