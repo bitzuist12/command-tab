@@ -207,6 +207,10 @@ POST /api/codex/open
 
 WhatsApp send endpoints perform bridge-health preflight in the connector before forwarding. If the bridge is down, the request fails visibly with the preflight error.
 
+The Vietnamese card can launch an external practice mini-app and play its TTS.
+Set `COMMAND_TAB_VIETNAMESE_URL` (default `http://localhost:3000`) to point at
+that app; the card then shows **Open practice** and **Hear word / example**.
+
 ## Summary Endpoint
 
 `GET /api/summary`
