@@ -848,6 +848,30 @@ a.command-card-list-row:hover { color: var(--card-accent, var(--ink)); }
   line-height: 1.5;
 }
 
+.vietnamese-example {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.vietnamese-translation {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.vietnamese-meta {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+a.command-task-mini {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
 .command-task-check[disabled] {
   cursor: default;
   opacity: 0.85;

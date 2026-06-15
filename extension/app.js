@@ -884,9 +884,21 @@ function renderDailySystemsCard(connector) {
 
   const viet = items.find(item => item.type === 'vietnamese');
   if (viet) {
+    const meta = [
+      viet.studied_today ? 'Studied today' : (viet.last_studied ? `Last: ${viet.last_studied}` : 'Not studied'),
+      `${viet.streak || 0} day streak`,
+      `${viet.entry_count || 0} entries`,
+    ].join(' · ');
+    const tts = viet.tts_url || '';
     out.push(card('vietnamese', viet.title || 'Vietnamese', '#2f6f7d', `
-      <div class="command-summary">${escapeHtml(viet.detail || '')}</div>
+      ${viet.detail ? `<div class="command-summary">${escapeHtml(viet.detail)}</div>` : ''}
+      ${viet.example_vi ? `<div class="vietnamese-example">${escapeHtml(viet.example_vi)}</div>` : ''}
+      ${viet.example_en ? `<div class="vietnamese-translation">${escapeHtml(viet.example_en)}</div>` : ''}
+      <div class="vietnamese-meta">${escapeHtml(meta)}</div>
       <div class="command-actions compact-row">
+        ${viet.practice_url ? `<a class="command-task-mini" href="${escapeHtml(viet.practice_url)}" target="_blank" rel="noopener">${viet.server_up ? 'Open practice' : 'Open app'}</a>` : ''}
+        ${tts ? `<button class="command-task-mini" data-action="command-vietnamese-speak" data-tts="${escapeHtml(tts)}" data-text="${escapeHtml(viet.title || '')}" type="button">Hear word</button>` : ''}
+        ${tts && viet.example_vi ? `<button class="command-task-mini" data-action="command-vietnamese-speak" data-tts="${escapeHtml(tts)}" data-text="${escapeHtml(viet.example_vi)}" type="button">Hear example</button>` : ''}
         <button class="command-task-mini ${viet.studied_today ? 'is-active' : ''}" data-action="command-vietnamese-study" type="button">${viet.studied_today ? 'Studied' : 'Mark studied'}</button>
       </div>`));
   }
@@ -2292,6 +2304,21 @@ document.addEventListener('click', async (e) => {
     } catch (error) {
       showToast(error.message || 'Habit metrics failed');
       await renderCommandCenter();
+    }
+    return;
+  }
+
+  if (action === 'command-vietnamese-speak') {
+    e.stopPropagation();
+    const ttsBase = actionEl.dataset.tts || '';
+    const text = (actionEl.dataset.text || '').trim();
+    if (!ttsBase || !text) return;
+    const src = `${ttsBase}?text=${encodeURIComponent(text)}`;
+    try {
+      const audio = new Audio(src);
+      audio.play().catch(() => window.open(src, '_blank', 'noopener'));
+    } catch (_error) {
+      window.open(src, '_blank', 'noopener');
     }
     return;
   }

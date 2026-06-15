@@ -22,6 +22,8 @@ const EXTERNAL_BACKEND_URL = normalizeBaseUrl(process.env.COMMAND_TAB_BACKEND_UR
 const DEFAULT_TASKS_FILE = path.join(__dirname, '..', 'examples', 'tasks.sample.json');
 const DEFAULT_WHATSAPP_FILE = path.join(__dirname, '..', 'examples', 'whatsapp.sample.json');
 const DEFAULT_NOTES_FILE = path.join(__dirname, '..', 'examples', 'notes.sample.json');
+// Optional local mini-app the Vietnamese card links to (practice app + TTS).
+const VIETNAMESE_APP_URL = normalizeBaseUrl(process.env.COMMAND_TAB_VIETNAMESE_URL || 'http://localhost:3000');
 
 function normalizeBaseUrl(value) {
   return String(value || '').replace(/\/+$/, '');
@@ -732,8 +734,16 @@ async function readExternalDailySystemsConnector(now) {
           type: 'vietnamese',
           id: 'vietnamese-today',
           title: vietnamese.word || 'Vietnamese',
-          detail: [vietnamese.defEn || '', vietnamese.example?.vi || '', vietnamese.study?.studied_today ? 'studied today' : 'not studied'].filter(Boolean).join(' · '),
+          detail: vietnamese.defEn || vietnamese.defVi || '',
+          example_vi: vietnamese.example?.vi || '',
+          example_en: vietnamese.example?.en || '',
           studied_today: Boolean(vietnamese.study?.studied_today),
+          streak: Number(vietnamese.study?.streak || 0),
+          last_studied: vietnamese.study?.last_studied || '',
+          entry_count: Number(vietnamese.entry_count || 0),
+          server_up: Boolean(vietnamese.server_up),
+          practice_url: VIETNAMESE_APP_URL,
+          tts_url: VIETNAMESE_APP_URL ? `${VIETNAMESE_APP_URL}/api/tts` : '',
         }] : []),
         ...(morningBrief.gratitude ? [{
           type: 'gratitude',
