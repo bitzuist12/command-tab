@@ -53,6 +53,9 @@ The file declares a `type`:
 - **`note`** — freeform text; editing saves back to the file.
 - **`input`** — a prompt + box that appends timestamped entries to a JSONL log
   and shows the most recent ones.
+- **`table`** — read-only label/value rows (stats, key facts). JSON `items`
+  (`{label, value}`), or a Markdown file with `type: table` and `Label: value`
+  lines.
 
 ### JSON example (`03-habits.json`)
 
@@ -138,6 +141,7 @@ folders are silently skipped, and `~` expands to your home directory.
 ### Write-back endpoints
 
 ```text
+GET  /api/cards         list all card connectors (handy for agents/debugging)
 POST /api/cards/check   { "id": "card-03-habits", "index": 0, "checked": true }
 POST /api/cards/note    { "id": "card-02-study-focus", "body": "..." }
 POST /api/cards/input   { "id": "card-01-gratitude", "text": "..." }

@@ -13,10 +13,13 @@ Command Tab works as a tab manager immediately. To turn it into a command center
 ## 2. Create A Private Context Folder
 
 ```bash
-cp -R examples/context ./command-tab-context
+npm run init
 ```
 
-`command-tab-context/` is gitignored. This is where your personal tasks, notes, message drafts, and settings live.
+This scaffolds `./command-tab-context` from the template (it never overwrites an
+existing one). Equivalent to `cp -R examples/context ./command-tab-context`.
+
+`command-tab-context/` is gitignored. This is where your personal tasks, notes, message drafts, cards, and settings live.
 
 ## 3. Edit Your First Files
 

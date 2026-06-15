@@ -75,10 +75,10 @@ No build step is required for the current extension.
 
 ## Optional Connector Server
 
-Create a private context folder:
+Create a private context folder (one command, never overwrites):
 
 ```bash
-cp -R examples/context ./command-tab-context
+npm run init
 ```
 
 Run the local connector server:
