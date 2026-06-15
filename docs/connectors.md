@@ -98,6 +98,43 @@ Markdown is the most agent-friendly format. A Markdown file with `- [ ]` /
 Entries are appended to `command-tab-context/cards/gratitude.jsonl` as one JSON
 object per line (`{"text": "...", "at": "ISO-8601"}`).
 
+### Where cards are pulled from
+
+By default the server reads the **primary** folder:
+
+1. `COMMAND_TAB_CARDS_DIR` if set, else
+2. `COMMAND_TAB_CONTEXT_DIR/cards`, else
+3. `<cwd>/command-tab-context/cards`
+
+The primary folder is **writable** (checking items, saving notes, appending
+input entries edit those files).
+
+### Pulling cards from other folders
+
+To show cards that live elsewhere (an existing notes folder, an agent's output
+directory, a shared journal), add extra sources two ways:
+
+```bash
+# env: comma-separated paths
+COMMAND_TAB_CARDS_DIRS="~/work/cards,~/journal" npm run connector
+```
+
+```json
+// command-tab-context/settings.json
+{
+  "card_sources": [
+    "~/some/other/cards-folder",
+    { "path": "~/my/private/journal", "readonly": false, "label": "Journal" }
+  ]
+}
+```
+
+**Safety:** extra sources are **read-only by default** — their cards render, but
+the new tab shows no edit controls and the server refuses any write to them.
+This means you can point Command Tab at another system's folder without risk of
+modifying it. Opt into edits per source with `"readonly": false`. Missing
+folders are silently skipped, and `~` expands to your home directory.
+
 ### Write-back endpoints
 
 ```text
