@@ -735,11 +735,17 @@ async function readExternalDailySystemsConnector(now) {
           detail: [vietnamese.defEn || '', vietnamese.example?.vi || '', vietnamese.study?.studied_today ? 'studied today' : 'not studied'].filter(Boolean).join(' · '),
           studied_today: Boolean(vietnamese.study?.studied_today),
         }] : []),
-        ...(morningBrief.gratitude || morningBrief.study_focus ? [{
+        ...(morningBrief.gratitude ? [{
           type: 'gratitude',
           id: 'gratitude',
-          title: 'Gratitude / Study focus',
-          detail: [morningBrief.gratitude?.content || '', morningBrief.study_focus?.content || ''].filter(Boolean).join(' · ').slice(0, 240),
+          title: 'Gratitude',
+          detail: String(morningBrief.gratitude?.content || '').slice(0, 240),
+        }] : []),
+        ...(morningBrief.study_focus ? [{
+          type: 'study-focus',
+          id: 'study-focus',
+          title: 'Study Focus',
+          detail: String(morningBrief.study_focus?.content || '').slice(0, 240),
         }] : []),
         ...(Array.isArray(dailyShot.entries) ? [{
           type: 'daily-shot',

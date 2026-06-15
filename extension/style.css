@@ -771,8 +771,9 @@ header {
   gap: 3px;
 }
 
-/* File-driven custom cards */
-.command-file-card {
+/* File-driven custom cards + split daily-systems cards */
+.command-file-card,
+.command-daily-card[style*="--card-accent"] {
   border-left: 3px solid var(--card-accent, var(--ink));
 }
 

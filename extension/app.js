@@ -804,86 +804,112 @@ function renderReviewConnectorCard(connector) {
     </article>`;
 }
 
+// Daily Systems renders as SEPARATE cards (gratitude, study focus, habits,
+// daily shot, Vietnamese, voice, agents) to match the standalone tab layout.
 function renderDailySystemsCard(connector) {
   const status = connector.status || 'error';
   const items = Array.isArray(connector.items) ? connector.items : [];
-  const habitRows = items.filter(item => item.type === 'habit').map(item => `
-    <div class="command-daily-row" data-habit-id="${escapeHtml(item.id || '')}">
-      <button class="command-task-check" data-action="command-habit-check" data-habit-id="${escapeHtml(item.id || '')}" data-checked="${item.checked ? 'true' : 'false'}" type="button">${item.checked ? '✓' : ''}</button>
-      <div class="command-task-copy">
-        <span>${escapeHtml(item.title || 'Habit')}</span>
-        <small>${escapeHtml(item.detail || (item.checked ? 'done' : 'open'))}</small>
-        ${Array.isArray(item.metrics) && item.metrics.length ? `<div class="command-habit-metrics">
-          ${item.metrics.map(metric => `
-            <label>
-              <span>${escapeHtml(metric.label || metric.id || 'Metric')}</span>
-              <input class="command-metric-input" data-role="command-habit-metric" data-metric-id="${escapeHtml(metric.id || '')}" placeholder="${escapeHtml(metric.unit || '')}" inputmode="decimal">
-            </label>`).join('')}
-        </div>
-        <button class="command-task-mini" data-action="command-habit-metrics-save" data-habit-id="${escapeHtml(item.id || '')}" type="button">Save metrics</button>` : ''}
-      </div>
-    </div>`).join('');
-  const otherRows = items.filter(item => item.type !== 'habit').slice(0, 8).map(item => {
-    if (item.type === 'voice') {
-      return `<div class="command-item">
-        <span>${escapeHtml(item.title || 'Voice notes')}</span>
-        <small>${escapeHtml(item.detail || '')}</small>
-        <div class="command-actions compact-row">
-          <button class="command-task-mini" data-action="command-voice-play" data-text="${escapeHtml(item.detail || '')}" type="button">Play latest</button>
-          <button class="command-task-mini" data-action="command-voice-open" type="button">Open app</button>
-          <button class="command-task-mini" data-action="command-voice-folder" type="button">Folder</button>
-        </div>
-      </div>`;
-    }
-    if (item.type === 'vietnamese') {
-      return `<div class="command-item">
-        <span>${escapeHtml(item.title || 'Vietnamese')}</span>
-        <small>${escapeHtml(item.detail || '')}</small>
-        <div class="command-actions compact-row">
-          <button class="command-task-mini ${item.studied_today ? 'is-active' : ''}" data-action="command-vietnamese-study" type="button">${item.studied_today ? 'Studied' : 'Mark studied'}</button>
-        </div>
-      </div>`;
-    }
-    if (item.type === 'gratitude') {
-      return `<div class="command-item">
-        <span>${escapeHtml(item.title || 'Gratitude')}</span>
-        <small>${escapeHtml(item.detail || '')}</small>
-        <form class="command-gratitude-form" data-action="command-gratitude-save">
-          <input class="command-task-input" data-role="command-gratitude-text" placeholder="One thing worth noticing..." autocomplete="off">
-          <button class="command-task-mini" type="submit">Save</button>
-        </form>
-      </div>`;
-    }
-    if (item.type === 'daily-shot') {
-      return `<div class="command-item">
-        <span>${escapeHtml(item.title || 'Daily shot')}</span>
-        <small>${escapeHtml(item.detail || '')}</small>
-        <form class="command-gratitude-form" data-action="command-daily-shot-save">
-          <input class="command-task-input" data-role="command-daily-shot-text" placeholder="Who is today’s shot?" autocomplete="off">
-          <button class="command-task-mini" type="submit">Save</button>
-        </form>
-      </div>`;
-    }
-    return `<div class="command-item">
-      <span>${escapeHtml(item.title || 'Daily item')}</span>
-      <small>${escapeHtml(item.detail || '')}</small>
-    </div>`;
-  }).join('');
-  return `
-    <article class="command-card command-daily-card is-${escapeHtml(status)}">
+
+  const card = (kicker, title, accent, inner) => `
+    <article class="command-card command-daily-card is-ok" style="--card-accent:${accent}">
       <div class="command-card-head">
         <div>
-          <div class="command-kicker">${escapeHtml(connector.kind || 'systems')}</div>
-          <h3>${escapeHtml(connector.label || 'Daily Systems')}</h3>
+          <div class="command-kicker">${escapeHtml(kicker)}</div>
+          <h3>${escapeHtml(title)}</h3>
         </div>
-        <span class="command-status">${escapeHtml(connectorStatusLabel(status))}</span>
       </div>
-      ${connector.summary ? `<div class="command-summary">${escapeHtml(connector.summary)}</div>` : ''}
-      ${connector.error ? `<div class="command-error">${escapeHtml(connector.error)}</div>` : ''}
-      <div class="command-daily-list">${habitRows || '<div class="command-empty">No habits loaded.</div>'}</div>
-      ${otherRows ? `<div class="command-items">${otherRows}</div>` : ''}
-      ${renderConnectorActions(connector)}
+      ${inner}
     </article>`;
+
+  if (status === 'error') {
+    return `
+      <article class="command-card command-daily-card is-error">
+        <div class="command-card-head">
+          <div><div class="command-kicker">systems</div><h3>${escapeHtml(connector.label || 'Daily Systems')}</h3></div>
+          <span class="command-status">${escapeHtml(connectorStatusLabel(status))}</span>
+        </div>
+        <div class="command-error">${escapeHtml(connector.error || 'Daily systems unavailable.')}</div>
+      </article>`;
+  }
+
+  const out = [];
+
+  const habitItems = items.filter(item => item.type === 'habit');
+  if (habitItems.length) {
+    const checked = habitItems.filter(item => item.checked).length;
+    const rows = habitItems.map(item => `
+      <div class="command-daily-row" data-habit-id="${escapeHtml(item.id || '')}">
+        <button class="command-task-check" data-action="command-habit-check" data-habit-id="${escapeHtml(item.id || '')}" data-checked="${item.checked ? 'true' : 'false'}" type="button">${item.checked ? '✓' : ''}</button>
+        <div class="command-task-copy">
+          <span>${escapeHtml(item.title || 'Habit')}</span>
+          <small>${escapeHtml(item.detail || (item.checked ? 'done' : 'open'))}</small>
+          ${Array.isArray(item.metrics) && item.metrics.length ? `<div class="command-habit-metrics">
+            ${item.metrics.map(metric => `
+              <label>
+                <span>${escapeHtml(metric.label || metric.id || 'Metric')}</span>
+                <input class="command-metric-input" data-role="command-habit-metric" data-metric-id="${escapeHtml(metric.id || '')}" placeholder="${escapeHtml(metric.unit || '')}" inputmode="decimal">
+              </label>`).join('')}
+          </div>
+          <button class="command-task-mini" data-action="command-habit-metrics-save" data-habit-id="${escapeHtml(item.id || '')}" type="button">Save metrics</button>` : ''}
+        </div>
+      </div>`).join('');
+    out.push(card(`habits · ${checked}/${habitItems.length}`, 'Habits', '#7c5cff', `<div class="command-daily-list">${rows}</div>`));
+  }
+
+  const grat = items.find(item => item.type === 'gratitude');
+  if (grat) {
+    out.push(card('gratitude', 'Gratitude', '#b6792f', `
+      ${grat.detail ? `<div class="command-summary">${escapeHtml(grat.detail)}</div>` : ''}
+      <form class="command-gratitude-form" data-action="command-gratitude-save">
+        <input class="command-task-input" data-role="command-gratitude-text" placeholder="One thing worth noticing..." autocomplete="off">
+        <button class="command-task-mini" type="submit">Save</button>
+      </form>`));
+  }
+
+  const study = items.find(item => item.type === 'study-focus');
+  if (study) {
+    out.push(card('study focus', 'Study Focus', '#2f7d5b',
+      `<div class="command-card-note-ro">${escapeHtml(study.detail || 'No study focus set.')}</div>`));
+  }
+
+  const shot = items.find(item => item.type === 'daily-shot');
+  if (shot) {
+    out.push(card('daily shot', 'Daily Shot', '#c2562f', `
+      ${shot.detail ? `<div class="command-summary">${escapeHtml(shot.detail)}</div>` : ''}
+      <form class="command-gratitude-form" data-action="command-daily-shot-save">
+        <input class="command-task-input" data-role="command-daily-shot-text" placeholder="Who is today’s shot?" autocomplete="off">
+        <button class="command-task-mini" type="submit">Save</button>
+      </form>`));
+  }
+
+  const viet = items.find(item => item.type === 'vietnamese');
+  if (viet) {
+    out.push(card('vietnamese', viet.title || 'Vietnamese', '#2f6f7d', `
+      <div class="command-summary">${escapeHtml(viet.detail || '')}</div>
+      <div class="command-actions compact-row">
+        <button class="command-task-mini ${viet.studied_today ? 'is-active' : ''}" data-action="command-vietnamese-study" type="button">${viet.studied_today ? 'Studied' : 'Mark studied'}</button>
+      </div>`));
+  }
+
+  const voice = items.find(item => item.type === 'voice');
+  if (voice) {
+    out.push(card('voice', voice.title || 'Voice Notes', '#5a6b7a', `
+      ${voice.detail ? `<div class="command-summary">${escapeHtml(voice.detail)}</div>` : ''}
+      <div class="command-actions compact-row">
+        <button class="command-task-mini" data-action="command-voice-play" data-text="${escapeHtml(voice.detail || '')}" type="button">Play latest</button>
+        <button class="command-task-mini" data-action="command-voice-open" type="button">Open app</button>
+        <button class="command-task-mini" data-action="command-voice-folder" type="button">Folder</button>
+      </div>`));
+  }
+
+  const agents = items.filter(item => item.type === 'agent');
+  if (agents.length) {
+    const rows = agents.map(item => `
+      <div class="command-item"><span>${escapeHtml(item.title || 'Agent run')}</span><small>${escapeHtml(item.detail || '')}</small></div>`).join('');
+    out.push(card('agents', 'Agent Runs', '#5a6b7a', `<div class="command-items">${rows}</div>`));
+  }
+
+  return out.join('') || card('systems', 'Daily Systems', 'var(--ink)', '<div class="command-empty">No daily systems loaded.</div>');
 }
 
 function renderCalendarCard(connector) {
