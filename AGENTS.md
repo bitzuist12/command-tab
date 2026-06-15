@@ -19,6 +19,7 @@ Command Tab is an open-source fork of Tab Out. It is being productized from a ta
 - `extension/style.css` -- dashboard styling.
 - `connector-server/server.js` -- local connector server (`127.0.0.1:8733`): local-context mode, external-backend compat mode, and routes.
 - `connector-server/google.js` -- native read-only Google connectors (Calendar, Gmail) via dependency-free OAuth (PKCE).
+- `connector-server/cards.js` -- file-driven custom cards: scans `command-tab-context/cards/` and turns each `.json`/`.md` file into a card, with write-back.
 - `docs/architecture.md` -- target product architecture.
 - `docs/roadmap.md` -- staged product roadmap.
 - `docs/connectors.md` -- connector contract, setup, and native Google connectors.

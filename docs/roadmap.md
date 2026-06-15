@@ -19,6 +19,8 @@
 - [x] Add local WhatsApp/message draft and notes context cards.
 - [x] Add external backend compatibility mode for the Hamilton-style prototype.
 - [x] Add connector settings UI (connector URL + per-connector show/hide toggles).
+- [x] Add file-driven custom cards (`cards/` folder; JSON/Markdown; list,
+  checklist, note, input; write-back). The customizable core of the product.
 
 ## Phase 2: First Real Connectors
 

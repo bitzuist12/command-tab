@@ -15,6 +15,8 @@ Expected files:
 - `whatsapp.json`
 - `notes.json`
 - `settings.json`
+- `cards/` -- custom cards; every `.json`/`.md` file becomes a card (see
+  [docs/connectors.md](../../docs/connectors.md#custom-cards-drop-a-file-get-a-card))
 
 Optional (for native Google connectors, see [docs/connectors.md](../../docs/connectors.md)):
 

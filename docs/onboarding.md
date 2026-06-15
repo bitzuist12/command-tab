@@ -38,6 +38,22 @@ Notes:
 command-tab-context/notes.json
 ```
 
+## 3b. Add Your Own Cards
+
+The easiest way to customize the new tab: drop files in
+`command-tab-context/cards/`. Every `.json` or `.md` file becomes a card.
+
+```text
+command-tab-context/cards/01-gratitude.json
+command-tab-context/cards/02-study-focus.md
+command-tab-context/cards/03-habits.json
+```
+
+Types: `list`, `checklist`, `note`, `input`. Filenames set the order. See
+[connectors.md](connectors.md#custom-cards-drop-a-file-get-a-card) for the
+schema and examples. You can also tell an agent: "write a card file to
+`command-tab-context/cards/`".
+
 ## 4. Start The Connector Server
 
 ```bash

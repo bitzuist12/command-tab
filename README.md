@@ -121,6 +121,23 @@ Command Tab can read your **Calendar** and **Gmail** directly via its own OAuth 
 
 See [docs/connectors.md](docs/connectors.md).
 
+## Custom Cards (drop a file, get a card)
+
+The simplest way to make the new tab yours. Put files in
+`command-tab-context/cards/` and each one becomes a card — no code required:
+
+```text
+command-tab-context/cards/01-gratitude.json   # input: append journal entries
+command-tab-context/cards/02-study-focus.md    # note: editable text
+command-tab-context/cards/03-habits.json        # checklist: check items off
+command-tab-context/cards/10-reading.md         # markdown - [ ] checklist
+```
+
+Card types are `list`, `checklist`, `note`, and `input`; checklists/notes/inputs
+write back to the files. Markdown is supported (frontmatter + `- [ ]` lines), so
+you can point an agent at the folder: *"write a card file to
+`command-tab-context/cards/`."* See [docs/connectors.md](docs/connectors.md#custom-cards-drop-a-file-get-a-card).
+
 ## Settings
 
 Open a new tab and expand **Settings** in the Command Center header to:

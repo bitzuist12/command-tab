@@ -33,6 +33,85 @@ COMMAND_TAB_BACKEND_URL=http://127.0.0.1:8765 npm run connector
 
 When a backend URL is configured, `/api/summary` attempts compatible backend calls for tasks, WhatsApp bridge/daily plan/latest review, Gmail latest review, calendar upcoming, habits, voice notes, memory, and agent runs. Each failed call returns an explicit `error` connector instead of sample content.
 
+## Custom Cards (drop a file, get a card)
+
+The fastest way to put your own stuff on the new tab. The connector server
+scans `command-tab-context/cards/` and turns **every `.json` or `.md` file into
+a card**. Add, remove, or reorder cards by changing files — no code required.
+Filenames sort the cards (use numeric prefixes like `01-`, `02-`).
+
+This is designed so you (or an agent) can just drop files in:
+
+> To add a card, write a file to `command-tab-context/cards/`.
+
+### Card types
+
+The file declares a `type`:
+
+- **`list`** — read-only rows. Items may include a `url` to become links.
+- **`checklist`** — checkable items; toggling writes the state back to the file.
+- **`note`** — freeform text; editing saves back to the file.
+- **`input`** — a prompt + box that appends timestamped entries to a JSONL log
+  and shows the most recent ones.
+
+### JSON example (`03-habits.json`)
+
+```json
+{
+  "title": "Habits",
+  "type": "checklist",
+  "accent": "#7c5cff",
+  "items": [
+    { "label": "Eat slowly", "detail": "No autopilot eating", "checked": false },
+    { "label": "Bodyweight set", "checked": false }
+  ]
+}
+```
+
+### Markdown example (`02-study-focus.md`)
+
+```markdown
+---
+type: note
+title: Study Focus
+accent: "#2f7d5b"
+subtitle: One primary study at a time.
+---
+What is one mechanism I can explain clearly today?
+```
+
+Markdown is the most agent-friendly format. A Markdown file with `- [ ]` /
+`- [x]` lines becomes a **checklist** automatically; otherwise it is a `note`.
+
+### Input example (`01-gratitude.json`)
+
+```json
+{
+  "title": "Gratitude",
+  "type": "input",
+  "subtitle": "What are you grateful for today?",
+  "placeholder": "I am grateful for...",
+  "log": "gratitude.jsonl"
+}
+```
+
+Entries are appended to `command-tab-context/cards/gratitude.jsonl` as one JSON
+object per line (`{"text": "...", "at": "ISO-8601"}`).
+
+### Write-back endpoints
+
+```text
+POST /api/cards/check   { "id": "card-03-habits", "index": 0, "checked": true }
+POST /api/cards/note    { "id": "card-02-study-focus", "body": "..." }
+POST /api/cards/input   { "id": "card-01-gratitude", "text": "..." }
+```
+
+Card ids are derived from the filename (`03-habits.json` -> `card-03-habits`).
+Writes are validated to stay inside the `cards/` folder. A file that fails to
+parse renders as an `error` card with the parse error — never faked content.
+
+Starter cards live in [`examples/context/cards/`](../examples/context/cards/).
+
 ## Hamilton-Compatible Backend Surface
 
 When `COMMAND_TAB_BACKEND_URL` is set, the connector server exposes the old local command-center API surface through the public Command Tab connector:
