@@ -822,6 +822,19 @@ a.command-card-list-row:hover { color: var(--card-accent, var(--ink)); }
   margin-top: 8px;
 }
 
+.command-card-note-ro {
+  margin-top: 8px;
+  white-space: pre-wrap;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.command-task-check[disabled] {
+  cursor: default;
+  opacity: 0.85;
+}
+
 .command-card-entries {
   margin-top: 4px;
   border-top: 1px solid rgba(90, 107, 122, 0.12);

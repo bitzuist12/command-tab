@@ -7,5 +7,9 @@
     "gmail": false,
     "calendar": false,
     "local_ai": false
-  }
+  },
+  "card_sources": [
+    "~/some/other/cards-folder",
+    { "path": "~/my/private/journal", "readonly": false, "label": "Journal" }
+  ]
 }

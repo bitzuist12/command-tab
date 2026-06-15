@@ -1005,6 +1005,7 @@ function renderNotesCard(connector) {
 function renderFileCard(connector) {
   const status = connector.status || 'error';
   const id = connector.id;
+  const ro = Boolean(connector.readonly);
   const accent = connector.accent ? ` style="--card-accent:${escapeHtml(connector.accent)}"` : '';
   let bodyHtml = '';
 
@@ -1014,21 +1015,24 @@ function renderFileCard(connector) {
     const items = Array.isArray(connector.items) ? connector.items : [];
     bodyHtml = `<div class="command-card-checklist">${items.map((item, i) => `
       <label class="command-card-check-row">
-        <button class="command-task-check" data-action="command-card-check" data-card-id="${escapeHtml(id)}" data-index="${i}" data-checked="${item.checked ? 'true' : 'false'}" type="button">${item.checked ? '✓' : ''}</button>
+        <button class="command-task-check" ${ro ? 'disabled' : `data-action="command-card-check" data-card-id="${escapeHtml(id)}" data-index="${i}"`} data-checked="${item.checked ? 'true' : 'false'}" type="button">${item.checked ? '✓' : ''}</button>
         <span class="${item.checked ? 'is-done' : ''}">${escapeHtml(item.label || '')}${item.detail ? `<small>${escapeHtml(item.detail)}</small>` : ''}</span>
       </label>`).join('') || '<div class="command-empty">No items.</div>'}</div>`;
   } else if (connector.type === 'note') {
-    bodyHtml = `<div class="command-card-note">
+    bodyHtml = ro
+      ? `<div class="command-card-note-ro">${escapeHtml(connector.body || '')}</div>`
+      : `<div class="command-card-note">
       <textarea class="command-note-body" data-role="command-card-note-body" placeholder="Write here...">${escapeHtml(connector.body || '')}</textarea>
       <button class="command-task-mini" data-action="command-card-note-save" data-card-id="${escapeHtml(id)}" type="button">Save</button>
     </div>`;
   } else if (connector.type === 'input') {
     const entries = Array.isArray(connector.entries) ? connector.entries : [];
+    const entriesHtml = entries.length ? `<div class="command-card-entries">${entries.map(e => `
+        <div class="command-card-entry"><span>${escapeHtml(e.text || '')}</span>${e.at ? `<small>${escapeHtml(String(e.at).slice(0, 10))}</small>` : ''}</div>`).join('')}</div>` : '';
     bodyHtml = `<div class="command-card-input">
-      <textarea class="command-note-body" data-role="command-card-input-text" placeholder="${escapeHtml(connector.placeholder || 'Add an entry...')}"></textarea>
-      <button class="command-task-mini" data-action="command-card-input" data-card-id="${escapeHtml(id)}" type="button">Add</button>
-      ${entries.length ? `<div class="command-card-entries">${entries.map(e => `
-        <div class="command-card-entry"><span>${escapeHtml(e.text || '')}</span>${e.at ? `<small>${escapeHtml(String(e.at).slice(0, 10))}</small>` : ''}</div>`).join('')}</div>` : ''}
+      ${ro ? '' : `<textarea class="command-note-body" data-role="command-card-input-text" placeholder="${escapeHtml(connector.placeholder || 'Add an entry...')}"></textarea>
+      <button class="command-task-mini" data-action="command-card-input" data-card-id="${escapeHtml(id)}" type="button">Add</button>`}
+      ${entriesHtml}
     </div>`;
   } else {
     // list (and links)
@@ -1042,7 +1046,7 @@ function renderFileCard(connector) {
     <article class="command-card command-file-card is-${escapeHtml(status)}"${accent}>
       <div class="command-card-head">
         <div>
-          <div class="command-kicker">${escapeHtml(connector.type || 'card')}</div>
+          <div class="command-kicker">${escapeHtml(connector.type || 'card')}${connector.source_label && connector.source_label !== 'cards' ? ` · ${escapeHtml(connector.source_label)}` : ''}${ro ? ' · read-only' : ''}</div>
           <h3>${escapeHtml(connector.label || 'Card')}</h3>
         </div>
         <span class="command-status">${escapeHtml(connectorStatusLabel(status))}</span>

@@ -3,45 +3,100 @@
 /**
  * File-driven custom cards for Command Tab.
  *
- * "Drop a file, get a card." The connector server scans CONTEXT_DIR/cards/ and
+ * "Drop a file, get a card." The server scans one or more card folders and
  * turns every .json or .md file into a card on the new tab. No code changes are
- * needed to add, remove, or reorder cards — just add/edit/delete files. Agents
- * can be pointed at this folder: "write a file to command-tab-context/cards/".
+ * needed to add, remove, or reorder cards. Agents can be pointed at a folder:
+ * "write a file to command-tab-context/cards/".
  *
- * Card types (the file declares which):
- *   - list      read-only rows (optionally links via item.url)
- *   - checklist checkable rows; state is written back to the file
- *   - note      freeform text; written back to the file
- *   - input     a prompt + box that appends timestamped entries to a log file
+ * Card sources (in order):
+ *   1. The primary folder (COMMAND_TAB_CARDS_DIR or CONTEXT_DIR/cards) -- WRITABLE.
+ *   2. COMMAND_TAB_CARDS_DIRS (comma-separated paths) -- READ-ONLY.
+ *   3. settings.json "card_sources": [ "~/path", { "path": "...", "readonly": false, "label": "..." } ]
+ *      -- READ-ONLY by default; opt into writes with "readonly": false.
  *
- * Markdown files map to `note` by default, or `checklist` when they contain
- * `- [ ]` / `- [x]` lines. JSON files use an explicit `type` (default `list`).
+ * SAFETY: extra folders are read-only by default, so write-back (toggling a
+ * checklist, saving a note, appending an input entry) can never modify files in
+ * another system unless you explicitly opt in. Reading is always non-destructive.
  *
- * Dependency-free: fs + path only. Every parse failure surfaces as an `error`
- * card; nothing is faked.
+ * Card types: list, checklist, note, input. Markdown files map to `note`, or
+ * `checklist` when they contain `- [ ]` / `- [x]` lines. JSON uses `type`
+ * (default `list`). Dependency-free: fs + path + os only. Parse failures
+ * surface as `error` cards; nothing is faked.
  */
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
-const CONTEXT_DIR = process.env.COMMAND_TAB_CONTEXT_DIR || path.join(process.cwd(), 'command-tab-context');
 const VALID_TYPES = new Set(['list', 'checklist', 'note', 'input', 'links']);
 
+function contextDir() {
+  return process.env.COMMAND_TAB_CONTEXT_DIR || path.join(process.cwd(), 'command-tab-context');
+}
+
+function expandHome(p) {
+  const s = String(p || '').trim();
+  if (s === '~') return os.homedir();
+  if (s.startsWith('~/')) return path.join(os.homedir(), s.slice(2));
+  return s;
+}
+
+/** Primary, writable cards folder. */
 function cardsDir() {
-  return process.env.COMMAND_TAB_CARDS_DIR || path.join(CONTEXT_DIR, 'cards');
+  return process.env.COMMAND_TAB_CARDS_DIR || path.join(contextDir(), 'cards');
 }
 
-function logsDir() {
-  return path.join(cardsDir(), 'logs');
+function readSettings() {
+  const file = path.join(contextDir(), 'settings.json');
+  if (!fs.existsSync(file)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8')) || {};
+  } catch (_error) {
+    return {};
+  }
 }
 
-function cardIdFromName(name) {
-  return `card-${name.replace(/\.(json|md|markdown)$/i, '')}`;
+/**
+ * Resolve the ordered list of card sources: { dir, readonly, label }.
+ * The primary source is always writable; extra sources default to read-only.
+ */
+function cardSources() {
+  const sources = [{ dir: cardsDir(), readonly: false, label: 'cards' }];
+  const seen = new Set([path.resolve(sources[0].dir)]);
+
+  const addExtra = (raw) => {
+    if (!raw) return;
+    let dir; let readonly = true; let label = '';
+    if (typeof raw === 'string') {
+      dir = expandHome(raw);
+    } else if (typeof raw === 'object' && raw.path) {
+      dir = expandHome(raw.path);
+      readonly = raw.readonly !== false; // read-only unless explicitly false
+      label = String(raw.label || '');
+    } else {
+      return;
+    }
+    const resolved = path.resolve(dir);
+    if (seen.has(resolved)) return;
+    seen.add(resolved);
+    sources.push({ dir, readonly, label: label || path.basename(resolved) });
+  };
+
+  String(process.env.COMMAND_TAB_CARDS_DIRS || '')
+    .split(',').map(s => s.trim()).filter(Boolean).forEach(addExtra);
+
+  const fromSettings = readSettings().card_sources;
+  if (Array.isArray(fromSettings)) fromSettings.forEach(addExtra);
+
+  return sources;
 }
 
-/** List card files in deterministic (filename) order. */
-function listCardFiles() {
-  const dir = cardsDir();
+function cardIdFromName(name, sourceIndex) {
+  const base = name.replace(/\.(json|md|markdown)$/i, '');
+  return sourceIndex > 0 ? `card-s${sourceIndex}-${base}` : `card-${base}`;
+}
+
+function listSourceFiles(dir) {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir)
     .filter(name => /\.(json|md|markdown)$/i.test(name))
@@ -49,16 +104,39 @@ function listCardFiles() {
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 }
 
-/** Resolve a card id back to its file, validating it stays inside cards/. */
-function resolveCardFile(id) {
-  const file = listCardFiles().find(name => cardIdFromName(name) === id);
-  if (!file) throw new Error(`No card found for id "${id}".`);
-  const full = path.join(cardsDir(), file);
-  const real = fs.realpathSync(path.dirname(full));
-  if (!real.startsWith(fs.realpathSync(cardsDir()))) {
-    throw new Error('Refusing to write outside the cards folder.');
+/** All card files across all sources: { id, file, name, readonly, sourceLabel, dir }. */
+function listAllCardFiles() {
+  const entries = [];
+  cardSources().forEach((source, sourceIndex) => {
+    listSourceFiles(source.dir).forEach(name => {
+      entries.push({
+        id: cardIdFromName(name, sourceIndex),
+        file: path.join(source.dir, name),
+        name,
+        readonly: source.readonly,
+        sourceLabel: source.label,
+        dir: source.dir,
+      });
+    });
+  });
+  return entries;
+}
+
+/** Find a card entry by id, validating the file stays inside its source dir. */
+function findCardEntry(id) {
+  const entry = listAllCardFiles().find(e => e.id === id);
+  if (!entry) throw new Error(`No card found for id "${id}".`);
+  const realFileDir = fs.realpathSync(path.dirname(entry.file));
+  if (!realFileDir.startsWith(fs.realpathSync(entry.dir))) {
+    throw new Error('Refusing to write outside the card source folder.');
   }
-  return full;
+  return entry;
+}
+
+function assertWritable(entry) {
+  if (entry.readonly) {
+    throw new Error(`Card "${entry.name}" is read-only (source: ${entry.sourceLabel}). Set "readonly": false on that source to allow edits.`);
+  }
 }
 
 function parseFrontmatter(raw) {
@@ -94,7 +172,7 @@ function parseMarkdownCard(name, raw) {
     });
   } else if (type === 'input') {
     card.placeholder = meta.placeholder || 'Add an entry...';
-    card.log = meta.log || `${cardIdFromName(name)}.jsonl`;
+    card.log = meta.log || `${cardIdFromName(name, 0)}.jsonl`;
   } else {
     card.body = body.replace(/^\n+|\n+$/g, '');
   }
@@ -116,9 +194,8 @@ function parseJsonCard(name, raw) {
     card.body = String(parsed.body || parsed.text || '');
   } else if (type === 'input') {
     card.placeholder = parsed.placeholder || 'Add an entry...';
-    card.log = parsed.log || `${cardIdFromName(name)}.jsonl`;
+    card.log = parsed.log || `${cardIdFromName(name, 0)}.jsonl`;
   } else {
-    // list / checklist
     card.items = (Array.isArray(parsed.items) ? parsed.items : []).map(item => {
       if (item && typeof item === 'object') {
         return {
@@ -135,10 +212,9 @@ function parseJsonCard(name, raw) {
 }
 
 /** Read recent entries (last N) from an input card's JSONL log. */
-function readLogEntries(logName, max = 5) {
-  const file = path.isAbsolute(logName) ? logName : path.join(cardsDir(), logName);
-  if (!fs.existsSync(file)) return [];
-  const lines = fs.readFileSync(file, 'utf8').split('\n').map(l => l.trim()).filter(Boolean);
+function readLogEntries(logFile, max = 5) {
+  if (!fs.existsSync(logFile)) return [];
+  const lines = fs.readFileSync(logFile, 'utf8').split('\n').map(l => l.trim()).filter(Boolean);
   return lines.slice(-max).reverse().map(line => {
     try {
       const obj = JSON.parse(line);
@@ -149,39 +225,38 @@ function readLogEntries(logName, max = 5) {
   });
 }
 
-/** Build all card connectors for /api/summary. Returns [] if no cards/ dir. */
+function logFileFor(entry, logName) {
+  return path.isAbsolute(logName) ? logName : path.join(path.dirname(entry.file), logName);
+}
+
+/** Build all card connectors for /api/summary. Returns [] if no sources exist. */
 function readCardConnectors(now) {
-  return listCardFiles().map(name => {
-    const id = cardIdFromName(name);
-    const file = path.join(cardsDir(), name);
-    const base = { id, kind: 'card', generated_at: now, source: 'live', file: name };
+  return listAllCardFiles().map(entry => {
+    const base = {
+      id: entry.id, kind: 'card', generated_at: now, source: 'live',
+      file: entry.name, readonly: entry.readonly, source_label: entry.sourceLabel,
+    };
     try {
-      const raw = fs.readFileSync(file, 'utf8');
-      const parsed = /\.(md|markdown)$/i.test(name) ? parseMarkdownCard(name, raw) : parseJsonCard(name, raw);
+      const raw = fs.readFileSync(entry.file, 'utf8');
+      const parsed = /\.(md|markdown)$/i.test(entry.file) ? parseMarkdownCard(entry.name, raw) : parseJsonCard(entry.name, raw);
       const card = { ...base, ...parsed, label: parsed.title, status: 'ok', error: null };
-      if (card.type === 'input') card.entries = readLogEntries(card.log);
+      if (card.type === 'input') card.entries = readLogEntries(logFileFor(entry, card.log));
       return card;
     } catch (error) {
-      return {
-        ...base,
-        label: name,
-        type: 'note',
-        status: 'error',
-        error: `Card file error (${name}): ${error.message}`,
-        items: [],
-      };
+      return { ...base, label: entry.name, type: 'note', status: 'error', error: `Card file error (${entry.name}): ${error.message}`, items: [] };
     }
   });
 }
 
 // ---------------------------------------------------------------------------
-// Write-back
+// Write-back (refuses read-only sources)
 // ---------------------------------------------------------------------------
 
 function toggleChecklistItem(id, index, checked) {
-  const file = resolveCardFile(id);
-  const raw = fs.readFileSync(file, 'utf8');
-  if (/\.(md|markdown)$/i.test(file)) {
+  const entry = findCardEntry(id);
+  assertWritable(entry);
+  const raw = fs.readFileSync(entry.file, 'utf8');
+  if (/\.(md|markdown)$/i.test(entry.file)) {
     let seen = -1;
     const out = raw.split('\n').map(line => {
       if (CHECKBOX_RE.test(line)) {
@@ -190,49 +265,50 @@ function toggleChecklistItem(id, index, checked) {
       }
       return line;
     }).join('\n');
-    fs.writeFileSync(file, out);
+    fs.writeFileSync(entry.file, out);
   } else {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed.items) || !parsed.items[index]) throw new Error('Checklist item not found.');
     if (typeof parsed.items[index] !== 'object') parsed.items[index] = { label: String(parsed.items[index]) };
     parsed.items[index].checked = Boolean(checked);
-    fs.writeFileSync(file, `${JSON.stringify(parsed, null, 2)}\n`);
+    fs.writeFileSync(entry.file, `${JSON.stringify(parsed, null, 2)}\n`);
   }
   return { ok: true };
 }
 
 function saveNote(id, body) {
-  const file = resolveCardFile(id);
-  const raw = fs.readFileSync(file, 'utf8');
-  if (/\.(md|markdown)$/i.test(file)) {
+  const entry = findCardEntry(id);
+  assertWritable(entry);
+  const raw = fs.readFileSync(entry.file, 'utf8');
+  if (/\.(md|markdown)$/i.test(entry.file)) {
     const fm = /^(---\n[\s\S]*?\n---\n?)/.exec(raw);
     const prefix = fm ? fm[1] : '';
-    fs.writeFileSync(file, `${prefix}${prefix && !prefix.endsWith('\n') ? '\n' : ''}${body}\n`);
+    fs.writeFileSync(entry.file, `${prefix}${prefix && !prefix.endsWith('\n') ? '\n' : ''}${body}\n`);
   } else {
     const parsed = JSON.parse(raw);
     parsed.body = String(body);
-    fs.writeFileSync(file, `${JSON.stringify(parsed, null, 2)}\n`);
+    fs.writeFileSync(entry.file, `${JSON.stringify(parsed, null, 2)}\n`);
   }
   return { ok: true };
 }
 
 function appendInput(id, text) {
-  const file = resolveCardFile(id);
-  const raw = fs.readFileSync(file, 'utf8');
-  const parsed = /\.(md|markdown)$/i.test(file) ? parseMarkdownCard(path.basename(file), raw) : parseJsonCard(path.basename(file), raw);
+  const entry = findCardEntry(id);
+  assertWritable(entry);
+  const raw = fs.readFileSync(entry.file, 'utf8');
+  const parsed = /\.(md|markdown)$/i.test(entry.file) ? parseMarkdownCard(entry.name, raw) : parseJsonCard(entry.name, raw);
   if (parsed.type !== 'input') throw new Error('Card is not an input card.');
-  const logName = parsed.log || `${id}.jsonl`;
-  const logFile = path.isAbsolute(logName) ? logName : path.join(cardsDir(), logName);
+  const logFile = logFileFor(entry, parsed.log || `${id}.jsonl`);
   fs.mkdirSync(path.dirname(logFile), { recursive: true });
-  const entry = { text: String(text || '').trim(), at: new Date().toISOString() };
-  if (!entry.text) throw new Error('Entry text is required.');
-  fs.appendFileSync(logFile, `${JSON.stringify(entry)}\n`);
-  return { ok: true, entry };
+  const value = { text: String(text || '').trim(), at: new Date().toISOString() };
+  if (!value.text) throw new Error('Entry text is required.');
+  fs.appendFileSync(logFile, `${JSON.stringify(value)}\n`);
+  return { ok: true, entry: value };
 }
 
 module.exports = {
   cardsDir,
-  logsDir,
+  cardSources,
   readCardConnectors,
   toggleChecklistItem,
   saveNote,
