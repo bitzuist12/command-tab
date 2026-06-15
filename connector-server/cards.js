@@ -28,7 +28,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const VALID_TYPES = new Set(['list', 'checklist', 'note', 'input', 'links']);
+const VALID_TYPES = new Set(['list', 'checklist', 'note', 'input', 'links', 'table']);
 
 function contextDir() {
   return process.env.COMMAND_TAB_CONTEXT_DIR || path.join(process.cwd(), 'command-tab-context');
@@ -173,6 +173,11 @@ function parseMarkdownCard(name, raw) {
   } else if (type === 'input') {
     card.placeholder = meta.placeholder || 'Add an entry...';
     card.log = meta.log || `${cardIdFromName(name, 0)}.jsonl`;
+  } else if (type === 'table') {
+    card.items = lines.map(l => {
+      const m = /^([^:]+):\s*(.*)$/.exec(l.trim());
+      return m ? { label: m[1].trim(), value: m[2].trim() } : null;
+    }).filter(Boolean);
   } else {
     card.body = body.replace(/^\n+|\n+$/g, '');
   }
@@ -195,6 +200,11 @@ function parseJsonCard(name, raw) {
   } else if (type === 'input') {
     card.placeholder = parsed.placeholder || 'Add an entry...';
     card.log = parsed.log || `${cardIdFromName(name, 0)}.jsonl`;
+  } else if (type === 'table') {
+    const rows = Array.isArray(parsed.items) ? parsed.items : (Array.isArray(parsed.rows) ? parsed.rows : []);
+    card.items = rows.map(it => (it && typeof it === 'object')
+      ? { label: String(it.label || it.title || it.key || ''), value: String(it.value !== undefined ? it.value : (it.detail || '')) }
+      : { label: String(it || ''), value: '' });
   } else {
     card.items = (Array.isArray(parsed.items) ? parsed.items : []).map(item => {
       if (item && typeof item === 'object') {

@@ -1034,6 +1034,10 @@ function renderFileCard(connector) {
       <button class="command-task-mini" data-action="command-card-input" data-card-id="${escapeHtml(id)}" type="button">Add</button>`}
       ${entriesHtml}
     </div>`;
+  } else if (connector.type === 'table') {
+    const items = Array.isArray(connector.items) ? connector.items : [];
+    bodyHtml = `<div class="command-card-table">${items.map(item => `
+      <div class="command-card-table-row"><span>${escapeHtml(item.label || '')}</span><strong>${escapeHtml(String(item.value ?? ''))}</strong></div>`).join('') || '<div class="command-empty">Empty.</div>'}</div>`;
   } else {
     // list (and links)
     const items = Array.isArray(connector.items) ? connector.items : [];

@@ -4,8 +4,9 @@
   "private": false,
   "description": "A privacy-first Chrome new-tab command center.",
   "scripts": {
-    "check": "node --check extension/app.js && node --check connector-server/server.js",
-    "connector": "node connector-server/server.js"
+    "check": "node --check extension/app.js && node --check connector-server/server.js && node --check connector-server/google.js && node --check connector-server/cards.js",
+    "connector": "node connector-server/server.js",
+    "init": "node scripts/init-context.js"
   },
   "license": "MIT"
 }

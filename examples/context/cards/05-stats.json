@@ -1,0 +1,10 @@
+{
+  "title": "Today at a glance",
+  "type": "table",
+  "accent": "#5a6b7a",
+  "items": [
+    { "label": "Focus", "value": "Ship card system" },
+    { "label": "Meetings", "value": "2" },
+    { "label": "Inbox", "value": "12 unread" }
+  ]
+}

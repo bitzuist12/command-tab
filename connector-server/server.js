@@ -910,6 +910,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/cards') {
+    json(res, 200, { status: 'ok', source: 'live', generated_at: new Date().toISOString(), cards: cards.readCardConnectors(new Date().toISOString()) });
+    return;
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/gmail/latest' && !EXTERNAL_BACKEND_URL) {
     google.listRecentMail({ query: url.searchParams.get('q') || undefined })
       .then(items => json(res, 200, { status: 'ok', source: 'live', generated_at: new Date().toISOString(), items }))

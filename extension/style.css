@@ -822,6 +822,23 @@ a.command-card-list-row:hover { color: var(--card-accent, var(--ink)); }
   margin-top: 8px;
 }
 
+.command-card-table {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.command-card-table-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(90, 107, 122, 0.1);
+  font-size: 13px;
+}
+
+.command-card-table-row strong { color: var(--ink); }
+
 .command-card-note-ro {
   margin-top: 8px;
   white-space: pre-wrap;
