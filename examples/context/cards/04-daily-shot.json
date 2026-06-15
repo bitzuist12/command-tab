@@ -1,0 +1,8 @@
+{
+  "title": "Daily Shot",
+  "type": "input",
+  "accent": "#c2562f",
+  "subtitle": "One named person, one specific reach-out.",
+  "placeholder": "Who is today's shot, and why?",
+  "log": "daily-shot.jsonl"
+}

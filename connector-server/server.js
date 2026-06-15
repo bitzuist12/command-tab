@@ -13,6 +13,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const google = require('./google');
+const cards = require('./cards');
 
 const HOST = process.env.COMMAND_TAB_HOST || '127.0.0.1';
 const PORT = Number.parseInt(process.env.COMMAND_TAB_PORT || '8733', 10);
@@ -814,6 +815,7 @@ async function summaryPayload() {
       readExternalMemoryConnector(now),
       readNotesConnector(now),
     ]);
+    connectors.push(...cards.readCardConnectors(now));
     return {
       status: connectors.some(connector => connector.status === 'ok') ? 'ok' : 'error',
       source: 'live',
@@ -849,6 +851,7 @@ async function summaryPayload() {
         error: 'No local model adapter configured yet.',
         items: [],
       },
+      ...cards.readCardConnectors(now),
     ],
   };
 }
@@ -1234,6 +1237,32 @@ const server = http.createServer((req, res) => {
     fetchBackendJson(`/api/memory/search${url.search || '?q='}`)
       .then(data => json(res, 200, data))
       .catch(error => json(res, 400, { status: 'error', source: 'live', service: 'memory', generated_at: new Date().toISOString(), error: error.message || String(error), results: [] }));
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname.startsWith('/api/cards/')) {
+    const action = url.pathname.slice('/api/cards/'.length);
+    readRequestJson(req)
+      .then(body => {
+        if (action === 'check') return cards.toggleChecklistItem(body.id, Number(body.index), Boolean(body.checked));
+        if (action === 'note') return cards.saveNote(body.id, String(body.body || ''));
+        if (action === 'input') return cards.appendInput(body.id, body.text);
+        throw new Error(`Unknown card action: ${action}`);
+      })
+      .then(result => json(res, 200, {
+        status: 'ok',
+        source: 'live',
+        ...result,
+        connectors: cards.readCardConnectors(new Date().toISOString()),
+      }))
+      .catch(error => json(res, 400, {
+        status: 'error',
+        source: 'local',
+        service: 'cards',
+        action,
+        generated_at: new Date().toISOString(),
+        error: error.message || String(error),
+      }));
     return;
   }
 

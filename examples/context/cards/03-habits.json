@@ -1,0 +1,10 @@
+{
+  "title": "Habits",
+  "type": "checklist",
+  "accent": "#7c5cff",
+  "items": [
+    { "label": "Eat slowly", "detail": "No autopilot eating", "checked": false },
+    { "label": "Bodyweight set", "detail": "Keep the chain alive", "checked": false },
+    { "label": "Drink water", "checked": false }
+  ]
+}

@@ -771,6 +771,71 @@ header {
   gap: 3px;
 }
 
+/* File-driven custom cards */
+.command-file-card {
+  border-left: 3px solid var(--card-accent, var(--ink));
+}
+
+.command-card-list,
+.command-card-checklist,
+.command-card-entries {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.command-card-list-row {
+  display: grid;
+  gap: 2px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(90, 107, 122, 0.1);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.command-card-list-row small,
+.command-card-check-row small,
+.command-card-entry small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+a.command-card-list-row:hover { color: var(--card-accent, var(--ink)); }
+
+.command-card-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.command-card-check-row .is-done {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.command-card-note,
+.command-card-input {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.command-card-entries {
+  margin-top: 4px;
+  border-top: 1px solid rgba(90, 107, 122, 0.12);
+  padding-top: 6px;
+}
+
+.command-card-entry {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink);
+}
+
 .command-connector-toggles {
   grid-column: 1 / -1;
   display: grid;

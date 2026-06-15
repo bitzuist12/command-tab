@@ -1000,7 +1000,61 @@ function renderNotesCard(connector) {
     </article>`;
 }
 
+// Generic renderer for file-driven custom cards (kind === 'card').
+// The card's `type` decides how it renders, so new cards need no new code.
+function renderFileCard(connector) {
+  const status = connector.status || 'error';
+  const id = connector.id;
+  const accent = connector.accent ? ` style="--card-accent:${escapeHtml(connector.accent)}"` : '';
+  let bodyHtml = '';
+
+  if (status === 'error') {
+    bodyHtml = '';
+  } else if (connector.type === 'checklist') {
+    const items = Array.isArray(connector.items) ? connector.items : [];
+    bodyHtml = `<div class="command-card-checklist">${items.map((item, i) => `
+      <label class="command-card-check-row">
+        <button class="command-task-check" data-action="command-card-check" data-card-id="${escapeHtml(id)}" data-index="${i}" data-checked="${item.checked ? 'true' : 'false'}" type="button">${item.checked ? '✓' : ''}</button>
+        <span class="${item.checked ? 'is-done' : ''}">${escapeHtml(item.label || '')}${item.detail ? `<small>${escapeHtml(item.detail)}</small>` : ''}</span>
+      </label>`).join('') || '<div class="command-empty">No items.</div>'}</div>`;
+  } else if (connector.type === 'note') {
+    bodyHtml = `<div class="command-card-note">
+      <textarea class="command-note-body" data-role="command-card-note-body" placeholder="Write here...">${escapeHtml(connector.body || '')}</textarea>
+      <button class="command-task-mini" data-action="command-card-note-save" data-card-id="${escapeHtml(id)}" type="button">Save</button>
+    </div>`;
+  } else if (connector.type === 'input') {
+    const entries = Array.isArray(connector.entries) ? connector.entries : [];
+    bodyHtml = `<div class="command-card-input">
+      <textarea class="command-note-body" data-role="command-card-input-text" placeholder="${escapeHtml(connector.placeholder || 'Add an entry...')}"></textarea>
+      <button class="command-task-mini" data-action="command-card-input" data-card-id="${escapeHtml(id)}" type="button">Add</button>
+      ${entries.length ? `<div class="command-card-entries">${entries.map(e => `
+        <div class="command-card-entry"><span>${escapeHtml(e.text || '')}</span>${e.at ? `<small>${escapeHtml(String(e.at).slice(0, 10))}</small>` : ''}</div>`).join('')}</div>` : ''}
+    </div>`;
+  } else {
+    // list (and links)
+    const items = Array.isArray(connector.items) ? connector.items : [];
+    bodyHtml = `<div class="command-card-list">${items.map(item => item.url
+      ? `<a class="command-card-list-row" href="${escapeHtml(item.url)}" target="_blank" rel="noopener"><span>${escapeHtml(item.label || item.title || 'Open')}</span>${item.detail ? `<small>${escapeHtml(item.detail)}</small>` : ''}</a>`
+      : `<div class="command-card-list-row"><span>${escapeHtml(item.label || item.title || '')}</span>${item.detail ? `<small>${escapeHtml(item.detail)}</small>` : ''}</div>`).join('') || '<div class="command-empty">Empty.</div>'}</div>`;
+  }
+
+  return `
+    <article class="command-card command-file-card is-${escapeHtml(status)}"${accent}>
+      <div class="command-card-head">
+        <div>
+          <div class="command-kicker">${escapeHtml(connector.type || 'card')}</div>
+          <h3>${escapeHtml(connector.label || 'Card')}</h3>
+        </div>
+        <span class="command-status">${escapeHtml(connectorStatusLabel(status))}</span>
+      </div>
+      ${connector.subtitle ? `<div class="command-summary">${escapeHtml(connector.subtitle)}</div>` : ''}
+      ${connector.error ? `<div class="command-error">${escapeHtml(connector.error)}</div>` : ''}
+      ${bodyHtml}
+    </article>`;
+}
+
 function renderConnectorCard(connector) {
+  if (connector.kind === 'card') return renderFileCard(connector);
   if (connector.id === 'tasks') return renderTaskConnectorCard(connector);
   if (connector.id === 'whatsapp' || connector.id === 'gmail') return renderReviewConnectorCard(connector);
   if (connector.id === 'daily-systems') return renderDailySystemsCard(connector);
@@ -2127,6 +2181,53 @@ document.addEventListener('click', async (e) => {
     const connectorId = actionEl.dataset.reviewConnector || '';
     if (connectorId) localStorage.setItem(reviewSortKey(connectorId), actionEl.value || 'needs');
     await renderCommandCenter();
+    return;
+  }
+
+  if (action === 'command-card-check') {
+    e.stopPropagation();
+    const cardId = actionEl.dataset.cardId || '';
+    const index = Number(actionEl.dataset.index);
+    const checked = actionEl.dataset.checked !== 'true';
+    if (!cardId || Number.isNaN(index)) return;
+    try {
+      await postBackendAction('/api/cards/check', { id: cardId, index, checked });
+      await renderCommandCenter();
+    } catch (error) {
+      showToast(error.message || 'Card update failed');
+      await renderCommandCenter();
+    }
+    return;
+  }
+
+  if (action === 'command-card-note-save') {
+    e.stopPropagation();
+    const cardId = actionEl.dataset.cardId || '';
+    const body = actionEl.closest('.command-card-note')?.querySelector('[data-role="command-card-note-body"]')?.value ?? '';
+    if (!cardId) return;
+    try {
+      await postBackendAction('/api/cards/note', { id: cardId, body });
+      showToast('Saved');
+    } catch (error) {
+      showToast(error.message || 'Save failed');
+    }
+    return;
+  }
+
+  if (action === 'command-card-input') {
+    e.stopPropagation();
+    const cardId = actionEl.dataset.cardId || '';
+    const field = actionEl.closest('.command-card-input')?.querySelector('[data-role="command-card-input-text"]');
+    const text = (field?.value || '').trim();
+    if (!cardId || !text) { showToast('Write something first'); return; }
+    try {
+      await postBackendAction('/api/cards/input', { id: cardId, text });
+      await renderCommandCenter();
+      showToast('Added');
+    } catch (error) {
+      showToast(error.message || 'Add failed');
+      await renderCommandCenter();
+    }
     return;
   }
 

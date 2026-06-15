@@ -1,0 +1,8 @@
+{
+  "title": "Gratitude",
+  "type": "input",
+  "accent": "#b6792f",
+  "subtitle": "What are you grateful for today?",
+  "placeholder": "I am grateful for...",
+  "log": "gratitude.jsonl"
+}
