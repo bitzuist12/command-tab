@@ -313,12 +313,24 @@ continue to proxy the backend instead of calling Google directly.
 
 The extension must show these states clearly.
 
+## Connector Settings (extension)
+
+The new tab has a **Settings** panel (in the Command Center header) for:
+
+- the connector server URL (defaults to `http://127.0.0.1:8733`),
+- an optional Codex workspace path,
+- **per-connector show/hide toggles** — uncheck a connector to hide its card.
+
+Visibility is stored in the browser (`localStorage`, key
+`command-tab:hidden-connectors`); the connector server is unaffected.
+
 ## Next Real Connectors
 
-Recommended order:
+Shipped: native Google Calendar + Gmail (read-only); local tasks/notes/WhatsApp
+context; external-backend compat for the rest.
 
-1. Top/focus task presentation and task-to-WhatsApp modal.
-2. WhatsApp manual-send queue with preflight health check.
-3. Gmail review actions: search, sort, reviewed/later, block sender, copy reply.
-4. Daily systems cards: habits, gratitude, voice notes, daily shot.
-5. Local model adapter.
+Remaining, recommended order:
+
+1. Local model adapter (summaries, ranking, drafts).
+2. Native Google Drive read-only (recent files), same OAuth path.
+3. Multi-source daily-systems polish in standalone mode.

@@ -15,3 +15,11 @@ Expected files:
 - `whatsapp.json`
 - `notes.json`
 - `settings.json`
+
+Optional (for native Google connectors, see [docs/connectors.md](../../docs/connectors.md)):
+
+- `google-credentials.json` -- your own OAuth client (or use env vars)
+- `google-calendar-token.json` -- written after you connect Calendar
+- `google-gmail-token.json` -- written after you connect Gmail
+
+These hold credentials/tokens and must never be committed.

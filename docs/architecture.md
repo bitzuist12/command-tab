@@ -70,14 +70,19 @@ Rules:
 
 ## Candidate Connectors
 
-| Connector | First useful card | Notes |
-| --- | --- | --- |
-| Gmail | Needs reply / urgent threads | Requires OAuth scopes and careful Google app review if public |
-| Google Calendar | Next meetings / conflicts | Safer than Gmail; good first OAuth connector |
-| WhatsApp | Needs reply / manual send queue | Local WhatsApp Web bridge is useful but fragile; official Business API is separate |
-| Tasks | Today's focus and quick capture | Can start with local JSON/Markdown before third-party APIs |
-| Files/notes | Recent docs and search | Local-only mode is powerful but must be explicit |
-| Local AI | Summaries, ranking, drafts | Optional, never required for core UX |
+| Connector | Status | First useful card | Notes |
+| --- | --- | --- | --- |
+| Google Calendar | shipped (native, read-only) | Upcoming events | First native OAuth connector; PKCE, dependency-free |
+| Gmail | shipped (native, read-only) | Recent / unread messages | Same OAuth path as Calendar; per-service token |
+| Tasks | shipped (local + backend) | Today's focus and quick capture | Local JSON or external backend |
+| Notes | shipped (local) | Editable quick notes | Local-only |
+| WhatsApp | shipped (backend compat) | Needs reply / manual send queue | Local context cards + backend bridge; sends are manual + preflighted |
+| Local AI | not started | Summaries, ranking, drafts | Optional, never required for core UX |
+
+Native Google connectors live in `connector-server/google.js`. They do not
+require the external backend, store tokens in the gitignored context dir, and
+surface every failure (`disconnected` / `error`) rather than faking data. See
+[connectors.md](connectors.md#native-google-connectors-oauth).
 
 ## Local AI
 

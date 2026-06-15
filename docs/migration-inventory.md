@@ -70,6 +70,12 @@ These do not depend on the external Hamilton backend:
 Both implemented in [connector-server/google.js](../connector-server/google.js);
 the module is service-aware and reuses existing google-auth-format tokens.
 
+## Extension Hardening
+
+- Per-connector show/hide toggles in the Settings panel (stored in the browser).
+- `host_permissions` for `http://127.0.0.1/*` and `http://localhost/*` so the
+  new-tab page can reach the connector server under Private Network Access.
+
 ## Still To Migrate
 
 - No known old Tab Out / Hamilton command-center parity gaps remain in this inventory.

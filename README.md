@@ -121,6 +121,14 @@ Command Tab can read your **Calendar** and **Gmail** directly via its own OAuth 
 
 See [docs/connectors.md](docs/connectors.md).
 
+## Settings
+
+Open a new tab and expand **Settings** in the Command Center header to:
+
+- set the connector server URL (default `http://127.0.0.1:8733`),
+- show/hide individual connector cards (saved in the browser),
+- set an optional Codex workspace path.
+
 ## Local Personal Config
 
 You can create `extension/config.local.js` for personal overrides. This file is gitignored.
