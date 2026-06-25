@@ -1,0 +1,15 @@
+{
+  "name": "command-tab-whatsapp-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Read-only WhatsApp bridge for Command Tab using Baileys (no browser).",
+  "scripts": {
+    "start": "node bridge.js",
+    "check": "node --check bridge.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.0",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "license": "MIT"
+}
