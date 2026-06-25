@@ -103,8 +103,10 @@ keeps the practical risk benign; do not auto-send.
 ## Plan
 
 1. Keep Mode A as the local/personal bridge (no changes needed).
-2. Build a **Baileys read-only spike** behind the same HTTP contract
-   (`/chats`, `/messages`, `/digest`).
+2. ✅ Baileys read-only spike built — [`whatsapp-bridge/`](../whatsapp-bridge/)
+   (port 8003, same `/chats` `/messages` `/digest` contract). Run with
+   `cd whatsapp-bridge && npm install && npm start`, scan the QR once.
 3. Run both for a while; compare reliability/onboarding.
-4. If Baileys holds up, make it the default bridge for the packaged app, with
-   the summarizer agent on the user's own API key.
+4. If Baileys holds up, add a Command Tab connector that calls `/digest`,
+   summarizes on the user's own API key, and emits "needs reply / summary /
+   tags" cards — then make it the default bridge for the packaged app.
