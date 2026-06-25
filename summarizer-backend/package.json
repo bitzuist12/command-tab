@@ -5,6 +5,8 @@
   "description": "Stateless WhatsApp summarizer (OpenRouter gpt-oss-120b) for Command Tab.",
   "scripts": {
     "start": "node server.js",
+    "start:local": "LLM_BASE_URL=http://127.0.0.1:8080/v1 SUMMARIZER_MODEL=qwen2.5-3b-instruct node server.js",
+    "on-device": "./run-on-device.sh",
     "check": "node --check server.js"
   },
   "engines": { "node": ">=18" },

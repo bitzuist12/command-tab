@@ -36,20 +36,31 @@ curl localhost:8090/health
 
 ## Run fully on-device (privacy-max, nothing leaves the machine)
 
-The same server can point at a local model — recommended for WhatsApp, since
-message text never leaves the laptop.
+Recommended for WhatsApp: a small local model (~3B) summarizes everything on the
+machine; message text never leaves it. One command:
 
 ```bash
-# Ollama (OpenAI-compatible on :11434)
-ollama pull qwen2.5:3b
-LLM_BASE_URL=http://127.0.0.1:11434/v1 SUMMARIZER_MODEL=qwen2.5:3b npm start
+brew install llama.cpp     # once
+npm run on-device          # downloads Qwen2.5-3B (~2GB first run), then serves
 ```
 
+That runs `llama.cpp` + the summarizer wired together (see `run-on-device.sh`).
+Point the desktop app's **Summarizer backend URL** at `http://127.0.0.1:8090`.
+
+A 3B model runs on **any Apple Silicon Mac (M1+, even 8GB)** — ~3–4 GB RAM,
+real-time. Good 3B picks: `Qwen2.5-3B-Instruct` (great at JSON/structured),
+`Llama-3.2-3B-Instruct`.
+
+Manual equivalent:
+
 ```bash
-# llama.cpp (OpenAI-compatible on :8080)
-llama-server -m qwen2.5-3b-instruct-q4_k_m.gguf --port 8080
-LLM_BASE_URL=http://127.0.0.1:8080/v1 SUMMARIZER_MODEL=qwen2.5-3b npm start
+llama-server -hf Qwen/Qwen2.5-3B-Instruct-GGUF:Q4_K_M --port 8080 --jinja
+npm run start:local
 ```
+
+> Note: Ollama also works (`LLM_BASE_URL=http://127.0.0.1:11434/v1`), but it must
+> have a working `llama-server` runner — some Homebrew Ollama builds ship without
+> it. Standalone `llama.cpp` is the reliable path and is what the app bundles.
 
 In the desktop app, this whole service eventually ships **inside** the app as a
 bundled llama.cpp sidecar, so a normal user just runs the app — no key, no
