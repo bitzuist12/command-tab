@@ -164,5 +164,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Summarizer backend listening on :${PORT} (model ${MODEL}, key ${OPENROUTER_KEY ? 'set' : 'MISSING'})`);
+  console.log(`Summarizer backend listening on :${PORT} (model ${MODEL}, endpoint ${LLM_BASE_URL}${IS_LOCAL ? ' [on-device]' : ''}, key ${LLM_API_KEY ? 'set' : 'none'})`);
 });
