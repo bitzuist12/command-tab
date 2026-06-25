@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Command Tab — WhatsApp</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">‹↹›</span>
+      <div>
+        <h1>WhatsApp</h1>
+        <div class="sub" id="statusLine">Loading…</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="btnRefresh" class="btn primary">Refresh</button>
+      <button id="btnDemo" class="btn">Demo data</button>
+      <button id="btnSettings" class="btn ghost" title="Settings">⚙</button>
+    </div>
+  </header>
+
+  <section id="settings" class="settings" hidden>
+    <div class="settings-grid">
+      <label>Bridge URL
+        <input id="bridgeUrl" type="text" placeholder="http://127.0.0.1:8003" />
+      </label>
+      <label>Summarizer backend URL
+        <input id="backendUrl" type="text" placeholder="https://your-app.up.railway.app (leave blank to show raw)" />
+      </label>
+      <label>Backend token
+        <input id="token" type="password" placeholder="optional install token" />
+      </label>
+      <label>Window (days)
+        <input id="days" type="number" min="1" max="30" value="7" />
+      </label>
+    </div>
+    <div class="settings-actions">
+      <button id="btnSaveSettings" class="btn primary">Save</button>
+      <span class="hint">The bridge runs locally (Baileys). Only summaries call the backend.</span>
+    </div>
+  </section>
+
+  <main id="cards" class="cards"></main>
+
+  <div id="empty" class="empty" hidden></div>
+
+  <script src="main.js"></script>
+</body>
+</html>
