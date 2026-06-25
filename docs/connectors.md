@@ -207,6 +207,10 @@ POST /api/codex/open
 
 WhatsApp send endpoints perform bridge-health preflight in the connector before forwarding. If the bridge is down, the request fails visibly with the preflight error.
 
+WhatsApp connects through a local bridge defined by its HTTP contract, so the
+implementation can be swapped (Chromium today, Baileys for the product) without
+changing the connector. See [whatsapp-connector.md](whatsapp-connector.md).
+
 The Vietnamese card can launch an external practice mini-app and play its TTS.
 Set `COMMAND_TAB_VIETNAMESE_URL` (default `http://localhost:3000`) to point at
 that app; the card then shows **Open practice** and **Hear word / example**.
