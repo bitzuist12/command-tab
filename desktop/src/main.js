@@ -10,7 +10,10 @@ const statusLine = el('statusLine');
 
 const SETTINGS_KEY = 'ctwa:settings';
 const settings = Object.assign(
-  { bridgeUrl: 'http://127.0.0.1:8003', backendUrl: '', token: '', days: 7 },
+  // On-device by default: the summarizer runs locally (npm run on-device →
+  // llama.cpp + a small model). Nothing leaves the machine. Clear it in
+  // Settings to fall back to a hosted backend, or leave blank for raw digest.
+  { bridgeUrl: 'http://127.0.0.1:8003', backendUrl: 'http://127.0.0.1:8090', token: '', days: 7 },
   readJSON(localStorage.getItem(SETTINGS_KEY)) || {}
 );
 
