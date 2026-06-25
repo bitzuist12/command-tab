@@ -20,9 +20,15 @@ const http = require('http');
 const PORT = parseInt(process.env.PORT || '8090', 10);
 const MODEL = process.env.SUMMARIZER_MODEL || 'openai/gpt-oss-120b';
 const TOKEN = process.env.SUMMARIZER_TOKEN || '';
-const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || '';
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MAX_CONCURRENCY = 4;
+// OpenAI-compatible endpoint. Defaults to OpenRouter (hosted); point at a local
+// model for fully on-device summarization (nothing leaves the machine):
+//   Ollama:    LLM_BASE_URL=http://127.0.0.1:11434/v1  SUMMARIZER_MODEL=qwen2.5:3b
+//   llama.cpp: LLM_BASE_URL=http://127.0.0.1:8080/v1   (llama-server)
+const LLM_BASE_URL = (process.env.LLM_BASE_URL || 'https://openrouter.ai/api/v1').replace(/\/+$/, '');
+const LLM_API_KEY = process.env.LLM_API_KEY || process.env.OPENROUTER_API_KEY || '';
+const COMPLETIONS_URL = `${LLM_BASE_URL}/chat/completions`;
+const IS_LOCAL = /127\.0\.0\.1|localhost/.test(LLM_BASE_URL);
+const MAX_CONCURRENCY = IS_LOCAL ? 2 : 4; // local model: don't oversubscribe
 const MAX_CHATS = 40;
 
 const SYSTEM = [
@@ -70,20 +76,18 @@ async function summarizeChat(chat) {
   if (!lines.trim()) {
     return Object.assign(base, { summary: 'No recent messages.', structured: fallbackStructured({ action_state: 'no_action', action_label: 'No action' }) });
   }
-  if (!OPENROUTER_KEY) {
-    // Honest failure: no fake summary.
-    return Object.assign(base, { summary: null, structured: fallbackStructured(), summary_error: 'OPENROUTER_API_KEY not set on the backend' });
+  if (!IS_LOCAL && !LLM_API_KEY) {
+    // Remote endpoint with no key: honest failure, no fake summary.
+    return Object.assign(base, { summary: null, structured: fallbackStructured(), summary_error: 'No LLM_API_KEY/OPENROUTER_API_KEY set on the backend' });
   }
 
+  const headers = { 'Content-Type': 'application/json', 'X-Title': 'Command Tab WhatsApp' };
+  if (LLM_API_KEY) headers.Authorization = `Bearer ${LLM_API_KEY}`;
   const user = `Chat with: ${chat.name || 'Unknown'}\nRecent messages (oldest first):\n${lines}`;
   try {
-    const res = await fetch(OPENROUTER_URL, {
+    const res = await fetch(COMPLETIONS_URL, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${OPENROUTER_KEY}`,
-        'Content-Type': 'application/json',
-        'X-Title': 'Command Tab WhatsApp',
-      },
+      headers,
       body: JSON.stringify({
         model: MODEL,
         temperature: 0.2,
@@ -92,7 +96,7 @@ async function summarizeChat(chat) {
       }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error((data.error && data.error.message) || `OpenRouter ${res.status}`);
+    if (!res.ok) throw new Error((data.error && data.error.message) || `LLM endpoint ${res.status}`);
     const content = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '{}';
     const parsed = JSON.parse(content);
     return Object.assign(base, {
@@ -129,7 +133,7 @@ const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') return json(res, 204, {});
 
   if (req.method === 'GET' && req.url === '/health') {
-    return json(res, 200, { status: 'ok', model: MODEL, has_key: Boolean(OPENROUTER_KEY), auth: Boolean(TOKEN) });
+    return json(res, 200, { status: 'ok', model: MODEL, base_url: LLM_BASE_URL, local: IS_LOCAL, has_key: Boolean(LLM_API_KEY), auth: Boolean(TOKEN) });
   }
 
   if (req.method === 'POST' && req.url === '/summarize') {

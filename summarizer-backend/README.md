@@ -25,14 +25,35 @@ pending-from-you vs pending-from-them, topics, suggestion, confidence). A chat
 whose summary fails comes back with `summary: null` + `summary_error` (never a
 fake summary).
 
-## Run locally
+## Run locally (hosted model)
 
 ```bash
 cd summarizer-backend
-cp .env.example .env   # set OPENROUTER_API_KEY
+cp .env.example .env   # set LLM_API_KEY (OpenRouter)
 npm start
 curl localhost:8090/health
 ```
+
+## Run fully on-device (privacy-max, nothing leaves the machine)
+
+The same server can point at a local model — recommended for WhatsApp, since
+message text never leaves the laptop.
+
+```bash
+# Ollama (OpenAI-compatible on :11434)
+ollama pull qwen2.5:3b
+LLM_BASE_URL=http://127.0.0.1:11434/v1 SUMMARIZER_MODEL=qwen2.5:3b npm start
+```
+
+```bash
+# llama.cpp (OpenAI-compatible on :8080)
+llama-server -m qwen2.5-3b-instruct-q4_k_m.gguf --port 8080
+LLM_BASE_URL=http://127.0.0.1:8080/v1 SUMMARIZER_MODEL=qwen2.5-3b npm start
+```
+
+In the desktop app, this whole service eventually ships **inside** the app as a
+bundled llama.cpp sidecar, so a normal user just runs the app — no key, no
+cloud, no setup.
 
 ## Deploy to Railway
 
