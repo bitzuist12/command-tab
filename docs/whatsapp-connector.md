@@ -75,10 +75,32 @@ Scope for the product:
 
 - **Read-only**: implement `/chats`, `/messages`, `/digest`. Defer `/send`
   (or keep it manual/approval-only). Read-only removes the spam-ban risk.
-- **Summaries via API models**, routed through the **user's own API key**, so
-  messages go to the user's own provider account, never to a central server.
-  This keeps frontier-model quality and the local-first trust story.
+- **Summaries via a hosted endpoint the product runs** (not BYO key — asking a
+  normal user for an API key loses ~99% of them). See "Summarization & hosting".
 - Transcribe voice notes (e.g. Whisper) so they are summarized too.
+
+## Summarization & hosting (decision)
+
+The product provides the AI. Users do **not** bring their own API key. The local
+app calls a **hosted summarization endpoint** that runs the model.
+
+That means message text transits the server to be summarized, so the trust story
+depends on three rules:
+
+1. **No retention.** Summarize and discard. Store the resulting summary/tags
+   (ideally back on the user's device), never the raw message text.
+2. **Send the minimum.** Raw messages stay on the device (the bridge holds
+   them). Ship only the recent text needed for the summary — no media; strip
+   numbers/names where possible.
+3. **Cost + abuse control.** Per-install auth token, rate limits, and
+   **incremental** summarization (only re-summarize chats with new activity —
+   the 7-day rolling pipeline already fits this). A cheap-but-good model tier.
+
+The summarizer brain already exists (per-chat 7-day structured summary: action
+label / pending-from-you-vs-them / topics / suggestion / confidence, plus
+heuristics and an honest fallback). Productizing it = expose it as a thin
+authenticated, no-store, incremental endpoint; the local app POSTs the digest
+and renders the returned tags as cards.
 
 Open questions to answer with a spike:
 
@@ -107,6 +129,6 @@ keeps the practical risk benign; do not auto-send.
    (port 8003, same `/chats` `/messages` `/digest` contract). Run with
    `cd whatsapp-bridge && npm install && npm start`, scan the QR once.
 3. Run both for a while; compare reliability/onboarding.
-4. If Baileys holds up, add a Command Tab connector that calls `/digest`,
-   summarizes on the user's own API key, and emits "needs reply / summary /
+4. If Baileys holds up, add a Command Tab connector that calls `/digest`, sends
+   it to the **hosted no-store summarizer**, and emits "needs reply / summary /
    tags" cards — then make it the default bridge for the packaged app.
